@@ -1,23 +1,21 @@
-::title:Duck My Duck - Web App Game::filepath:index.html
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Duck My Duck</title>
-    <!-- Telegram Web App API -->
+    <title>WORTIIX // NETRUNNER Terminal</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем жирный шрифт для мем-стиля -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0b0b0e;
-            --duck-yellow: #fcd116;
-            --duck-orange: #f39c12;
-            --gold: #f39c12;
-            --text-main: #ffffff;
-            --panel-bg: #15161c;
-            --accent-green: #2ecc71;
+            --bg-dark: #05080c;
+            --terminal-bg: #090f16;
+            --border-glow: #00ff66;
+            --neon-green: #39ff14;
+            --neon-blue: #00f0ff;
+            --neon-red: #ff3131;
+            --text-gray: #7a8b9e;
+            --text-bright: #e0e6ed;
         }
 
         * {
@@ -26,810 +24,768 @@
             -webkit-user-select: none;
             margin: 0;
             padding: 0;
-            font-family: 'Outfit', 'Segoe UI', sans-serif;
         }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-        }
-
-        /* Главный контейнер игры */
-        #app-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            max-width: 480px;
-            margin: 0 auto;
-            background: radial-gradient(circle at center, #1c1c24 0%, #0b0b0e 100%);
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-bright);
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 0 30px rgba(252, 209, 22, 0.1);
+            position: relative;
         }
 
-        /* --- ЭКРАН ВХОДА (SPLASH SCREEN) --- */
+        /* 🖼️ СТИЛИ ДЛЯ ТВОЕЙ ЗАСТАВКИ */
         #splash-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 50% 45%, #2a2510 0%, #08080a 70%);
-            z-index: 100;
+            background-color: #000000; /* Черный фон заставки */
+            z-index: 9999; /* Поверх всего */
             display: flex;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s; /* Плавное исчезновение */
+            padding: 20px;
+        }
+
+        /* Сама картинка */
+        .splash-img {
+            max-width: 80%;
+            max-height: 50vh;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            /* Можно добавить легкое неоновое свечение картинке: */
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); 
+        }
+
+        /* Текст загрузки */
+        .splash-loading-text {
+            color: var(--neon-blue);
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            animation: blink 1s infinite alternate;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        /* Полоска загрузки */
+        .splash-progress-bar {
+            width: 60%;
+            max-width: 250px;
+            height: 4px;
+            background: #14213d;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .splash-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+            transition: width 3s linear; /* Анимация заполнения на 3 секунды */
+        }
+
+        /* Класс скрытия заставки */
+        #splash-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+
+        /* --- ОСТАЛЬНЫЕ СТИЛИ ИГРЫ И ИНТЕРФЕЙСА --- */
+        .term-header {
+            background: #020406;
+            border-bottom: 2px solid #14213d;
+            padding: 10px 15px;
+            display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 50px 20px;
-            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.8s ease;
-        }
-
-        #splash-screen.fade-out {
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(1.05);
-        }
-
-        /* Задний неоновый свет утки */
-        .duck-glow-backdrop {
-            position: absolute;
-            width: 280px;
-            height: 280px;
-            background: radial-gradient(circle, rgba(252, 209, 22, 0.35) 0%, rgba(252, 209, 22, 0) 70%);
-            top: 15%;
-            border-radius: 50%;
-            filter: blur(20px);
-            z-index: 1;
-            animation: pulseGlow 3s infinite ease-in-out;
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.15); opacity: 1; }
-        }
-
-        /* Анимированные летающие монеты */
-        .flying-coins-container {
-            position: absolute;
-            width: 100%;
-            height: 60%;
-            top: 10%;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .splash-coin {
-            position: absolute;
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #f1c40f, #f39c12);
-            border-radius: 50%;
-            border: 2px solid #fff;
-            box-shadow: 0 0 10px rgba(243, 156, 18, 0.6), inset 0 0 4px rgba(255,255,255,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #7e5109;
-            font-size: 14px;
-        }
-
-        .coin-1 { top: 20%; left: 15%; animation: floatCoin 4s infinite ease-in-out; transform: rotate(15deg); }
-        .coin-2 { top: 35%; right: 10%; animation: floatCoin 5s infinite ease-in-out 1s; transform: rotate(-25deg); }
-        .coin-3 { top: 60%; left: 10%; animation: floatCoin 4.5s infinite ease-in-out 0.5s; transform: rotate(45deg); }
-        .coin-4 { top: 65%; right: 18%; animation: floatCoin 5.5s infinite ease-in-out 1.5s; transform: rotate(-10deg); }
-
-        @keyframes floatCoin {
-            0%, 100% { transform: translateY(0) rotate(var(--r, 15deg)); }
-            50% { transform: translateY(-15px) rotate(calc(var(--r, 15deg) + 10deg)); }
-        }
-
-        /* Стильный SVG персонаж Утки */
-        .duck-character-wrapper {
-            position: relative;
-            z-index: 5;
-            width: 250px;
-            height: 250px;
-            margin-top: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Текст DUCK MY DUCK */
-        .duck-logo-text {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 38px;
-            font-weight: 900;
-            color: #ffffff;
+            font-size: 11px;
             text-transform: uppercase;
-            text-align: center;
-            z-index: 10;
-            margin-top: -20px;
-            letter-spacing: -1px;
-            /* Реализация массивной обводки в точности как на скрине */
-            text-shadow: 
-                3px 3px 0px #000, 
-                -3px 3px 0px #000, 
-                3px -3px 0px #000, 
-                -3px -3px 0px #000,
-                0px 4px 15px rgba(0, 0, 0, 0.6);
-            transform: scale(1.05);
-            animation: textPulse 2s infinite ease-in-out;
-        }
-
-        @keyframes textPulse {
-            0%, 100% { transform: scale(1.05); }
-            50% { transform: scale(1.08); }
-        }
-
-        /* Прогресс-круговой лоудер */
-        .loader-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            z-index: 10;
-        }
-
-        .circular-loader {
-            position: relative;
-            width: 50px;
-            height: 50px;
-        }
-
-        .circular-loader svg {
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg);
-        }
-
-        .circular-loader circle {
-            fill: none;
-            stroke-width: 4;
-            stroke-linecap: round;
-        }
-
-        .circular-loader .bg {
-            stroke: rgba(255, 255, 255, 0.08);
-        }
-
-        .circular-loader .progress {
-            stroke: var(--duck-yellow);
-            stroke-dasharray: 126; /* 2 * PI * r (r=20) */
-            stroke-dashoffset: 126;
-            transition: stroke-dashoffset 0.1s linear;
-            filter: drop-shadow(0 0 6px var(--duck-yellow));
-        }
-
-        .loader-text {
-            font-size: 13px;
-            color: #a0a5b5;
-            font-weight: 600;
             letter-spacing: 1px;
         }
 
-        /* --- ГЛАВНЫЙ ИНТЕРФЕЙС ИГРЫ --- */
-        #game-interface {
-            flex: 1;
+        .sys-status {
             display: flex;
-            flex-direction: column;
-            opacity: 0;
-            transition: opacity 0.5s ease;
+            align-items: center;
+            gap: 8px;
         }
 
-        #game-interface.active {
-            opacity: 1;
+        .led-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            transition: all 0.3s ease;
         }
 
-        /* Игровая Шапка */
-        .game-header {
-            padding: 16px;
-            background: rgba(21, 22, 28, 0.6);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
+        .led-indicator.syncing {
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+            animation: pulse 0.6s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .deck-hud {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 12px 15px;
+            background: linear-gradient(to bottom, #070c14, transparent);
+        }
+
+        .hud-card {
+            background: var(--terminal-bg);
+            border: 1px solid #14213d;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .hud-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 3px; height: 100%;
+        }
+        .hud-card.credits::before { background-color: var(--neon-blue); }
+        .hud-card.memory::before { background-color: var(--neon-green); }
+
+        .hud-title {
+            color: var(--text-gray);
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .hud-value {
+            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .mini-profile {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .mini-avatar {
-            width: 40px;
-            height: 40px;
-            background: var(--duck-yellow);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #000;
-        }
-
-        .user-info-text {
+        .system-bars {
+            padding: 0 15px 12px 15px;
             display: flex;
             flex-direction: column;
-        }
-
-        .username {
-            font-weight: 800;
-            font-size: 14px;
-        }
-
-        .rank-badge {
-            font-size: 11px;
-            color: var(--duck-yellow);
-            font-weight: bold;
-        }
-
-        /* Панель пассивного дохода */
-        .passive-income-panel {
-            background: rgba(255, 255, 255, 0.02);
-            padding: 8px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            font-size: 12px;
-            text-align: right;
-        }
-
-        .passive-income-panel span {
-            color: var(--duck-yellow);
-            font-weight: bold;
-        }
-
-        /* Главный баланс */
-        .balance-container {
-            padding: 30px 20px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             gap: 6px;
         }
 
-        .balance-title {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #8c91a3;
-        }
-
-        .balance-value {
-            font-size: 44px;
-            font-weight: 900;
-            color: #ffffff;
+        .bar-box {
             display: flex;
-            align-items: center;
-            gap: 10px;
-            text-shadow: 0 0 20px rgba(252, 209, 22, 0.2);
+            flex-direction: column;
+            gap: 3px;
         }
 
-        .balance-coin-icon {
-            font-size: 34px;
-            animation: spin 8s infinite linear;
+        .bar-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-gray);
         }
 
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .bar-bg {
+            height: 6px;
+            background: #020406;
+            border: 1px solid #14213d;
+            border-radius: 3px;
+            overflow: hidden;
         }
 
-        /* Контейнер карточек прокачки */
-        .game-viewport {
-            flex: 1;
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .bar-fill.cpu { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+        .bar-fill.signal { background: var(--neon-blue); box-shadow: 0 0 6px var(--neon-blue); }
+
+        .screen-space {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            border-top: 1px solid #14213d;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
             overflow-y: auto;
-            padding: 10px 16px 90px 16px;
+            padding: 15px;
         }
 
-        .section-title {
-            font-size: 16px;
-            font-weight: 800;
-            margin-bottom: 12px;
-            color: #8c91a3;
+        .screen.active {
+            display: flex;
+        }
+
+        .console-log {
+            background: #020406;
+            border: 1px solid #14213d;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 11px;
+            line-height: 1.4;
+            color: var(--neon-green);
+            height: 120px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            box-shadow: inset 0 0 10px rgba(57, 255, 20, 0.05);
+        }
+
+        .log-line {
+            margin-bottom: 4px;
+        }
+        .log-line.system { color: var(--text-gray); }
+        .log-line.error { color: var(--neon-red); }
+        .log-line.accent { color: var(--neon-blue); }
+
+        .network-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .node-card {
+            background: var(--terminal-bg);
+            border: 1px solid #14213d;
+            border-radius: 6px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-info h3 {
+            font-size: 13px;
+            color: var(--neon-blue);
+            margin-bottom: 3px;
+        }
+
+        .node-info p {
+            font-size: 10px;
+            color: var(--text-gray);
+        }
+
+        .hack-btn {
+            background: #0c1c2e;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
-        .cards-grid {
-            display: grid;
-            grid-template-columns: 1fr;
+        .hack-btn:active {
+            background: var(--neon-blue);
+            color: #000;
+        }
+
+        .hack-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .upgrade-list {
+            display: flex;
+            flex-direction: column;
             gap: 12px;
         }
 
         .upgrade-card {
-            background: var(--panel-bg);
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            border-radius: 16px;
-            padding: 16px;
+            background: var(--terminal-bg);
+            border: 1px solid #14213d;
+            border-radius: 6px;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: border-color 0.2s, transform 0.1s;
         }
 
-        .upgrade-card:active {
-            transform: scale(0.98);
-        }
-
-        .upgrade-card.affordable {
-            border-color: rgba(252, 209, 22, 0.15);
-        }
-
-        .card-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .card-icon {
-            font-size: 28px;
-            background: rgba(252, 209, 22, 0.05);
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            border: 1px solid rgba(252, 209, 22, 0.1);
-        }
-
-        .card-details {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .card-name {
-            font-weight: 800;
-            font-size: 15px;
-        }
-
-        .card-level {
-            font-size: 11px;
-            color: var(--duck-yellow);
-            font-weight: bold;
-        }
-
-        .card-effect {
-            font-size: 11px;
-            color: #8c91a3;
-        }
-
-        .buy-button {
-            background: linear-gradient(135deg, #f1c40f, #f39c12);
-            border: none;
-            color: #000000;
-            padding: 12px 18px;
-            border-radius: 12px;
-            font-weight: 900;
+        .up-info h3 {
             font-size: 13px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.2);
-            transition: all 0.2s;
+            color: var(--neon-green);
+            margin-bottom: 3px;
         }
 
-        .buy-button.locked {
-            background: #25262e;
-            color: #555768;
-            box-shadow: none;
+        .up-info p {
+            font-size: 10px;
+            color: var(--text-gray);
+        }
+
+        .buy-btn {
+            background: #091a13;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .buy-btn:disabled {
+            opacity: 0.3;
             cursor: not-allowed;
         }
 
-        /* Канвас эффекта взрыва монет */
-        #effect-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 50;
-        }
-
-        /* Нижнее меню навигации */
-        .bottom-nav {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 70px;
-            background: rgba(21, 22, 28, 0.95);
-            backdrop-filter: blur(15px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        .ice-overlay {
             display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 40;
-            padding: 0 10px;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
         }
 
-        .nav-item {
+        .ice-window {
+            background: #020406;
+            border: 2px solid var(--neon-red);
+            border-radius: 6px;
+            padding: 15px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ice-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--neon-red);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+
+        .ice-desc {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-bright);
+            margin-bottom: 20px;
+        }
+
+        .ice-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            background: #180508;
+            border: 1px solid var(--neon-red);
+            color: var(--neon-red);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .choice-btn:active {
+            background: var(--neon-red);
+            color: #000;
+        }
+
+        .nav-tabs {
+            background: #020406;
+            border-top: 2px solid #14213d;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: 55px;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .tab-item {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: #8c91a3;
-            font-size: 11px;
+            color: var(--text-gray);
+            font-size: 10px;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
             cursor: pointer;
-            transition: color 0.2s;
-            width: 30%;
-            height: 100%;
+            gap: 4px;
+            text-transform: uppercase;
         }
 
-        .nav-item.active {
-            color: var(--duck-yellow);
-        }
-
-        .nav-item-icon {
-            font-size: 20px;
-            margin-bottom: 2px;
+        .tab-item.active {
+            color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.02);
+            border-top: 2px solid var(--neon-blue);
+            margin-top: -2px;
         }
     </style>
 </head>
 <body>
 
-<div id="app-container">
-    <!-- Канвас эффекта монет -->
-    <canvas id="effect-canvas"></canvas>
-
-    <!-- ================= ЭКРАН ВХОДА ================= -->
     <div id="splash-screen">
-        <!-- Бэк неон -->
-        <div class="duck-glow-backdrop"></div>
-
-        <!-- Летающие монеты из скрина -->
-        <div class="flying-coins-container">
-            <div class="splash-coin coin-1">D</div>
-            <div class="splash-coin coin-2" style="--r: -25deg;">D</div>
-            <div class="splash-coin coin-3" style="--r: 45deg;">D</div>
-            <div class="splash-coin coin-4" style="--r: -10deg;">D</div>
-        </div>
-
-        <!-- Отрисовка векторной утки (в точности по вашему скрину) -->
-        <div class="duck-character-wrapper">
-            <svg viewBox="0 0 200 200" width="100%" height="100%">
-                <!-- Волосы / Ирокез -->
-                <path d="M 80,45 C 85,15 110,25 125,15 C 120,30 135,35 140,45 C 145,35 155,42 160,52 C 145,60 130,55 120,55 Z" fill="#fcd116" />
-                <path d="M 125,15 C 135,28 135,32 140,45 Z" fill="#f1c40f" />
-                
-                <!-- Голова -->
-                <ellipse cx="100" cy="100" rx="65" ry="60" fill="#fcd116" />
-                
-                <!-- Тень на голове -->
-                <path d="M 40,110 C 50,140 100,165 155,120 C 162,105 165,95 165,90 C 165,140 120,160 100,160 C 60,160 38,130 40,110 Z" fill="#e2ba05" opacity="0.4"/>
-
-                <!-- Очки (Крутая форма по скрину) -->
-                <!-- Левая линза -->
-                <path d="M 38,92 C 38,82 55,80 88,86 C 88,102 85,118 68,118 C 50,118 38,108 38,92 Z" fill="#1e1e1e" stroke="#0f0f0f" stroke-width="4" />
-                <!-- Правая линза -->
-                <path d="M 162,92 C 162,82 145,80 112,86 C 112,102 115,118 132,118 C 150,118 162,108 162,92 Z" fill="#1e1e1e" stroke="#0f0f0f" stroke-width="4" />
-                <!-- Дужка очков -->
-                <rect x="85" y="85" width="30" height="8" rx="3" fill="#0f0f0f" />
-                <!-- Отражения на очках -->
-                <ellipse cx="55" cy="95" rx="8" ry="4" fill="#ffffff" opacity="0.2" transform="rotate(-15, 55, 95)" />
-                <ellipse cx="145" cy="95" rx="8" ry="4" fill="#ffffff" opacity="0.2" transform="rotate(-15, 145, 95)" />
-
-                <!-- Клюв (Серьезный вид) -->
-                <path d="M 72,112 C 72,100 128,100 128,112 C 128,132 120,144 100,144 C 80,144 72,132 72,112 Z" fill="#f39c12" stroke="#d35400" stroke-width="3" />
-                <!-- Линия рта -->
-                <path d="M 72,115 C 85,122 115,122 128,115" fill="none" stroke="#2c3e50" stroke-width="4" stroke-linecap="round" />
-                <!-- Ноздри -->
-                <ellipse cx="94" cy="110" rx="2.5" ry="1.5" fill="#d35400" />
-                <ellipse cx="106" cy="110" rx="2.5" ry="1.5" fill="#d35400" />
-            </svg>
-        </div>
-
-        <!-- Надпись DUCK MY DUCK -->
-        <div class="duck-logo-text">DUCK MY DUCK</div>
-
-        <!-- Реалистичный прогресс лоадер -->
-        <div class="loader-container">
-            <div class="circular-loader">
-                <svg>
-                    <circle class="bg" cx="25" cy="25" r="20" />
-                    <circle class="progress" id="loadingCircle" cx="25" cy="25" r="20" />
-                </svg>
-            </div>
-            <div class="loader-text" id="loaderPercent">0%</div>
+        <img src="logo.jpg" class="splash-img" alt="Wortiix Loading...">
+        <div class="splash-loading-text">ПОДКЛЮЧЕНИЕ К СЕТИ...</div>
+        <div class="splash-progress-bar">
+            <div class="splash-progress-fill" id="splash-bar"></div>
         </div>
     </div>
 
+    <div class="term-header">
+        <div class="sys-status">
+            <div class="led-indicator" id="sync-led"></div>
+            <span id="sync-lbl">WORTIIX DECK // ONLINE</span>
+        </div>
+        <div id="user-display">NETRUNNER: UNKNOWN</div>
+    </div>
 
-    <!-- ================= ИГРОВОЙ ИНТЕРФЕЙС ================= -->
-    <div id="game-interface">
-        <!-- Шапка -->
-        <div class="game-header">
-            <div class="mini-profile">
-                <div class="mini-avatar">🕶️</div>
-                <div class="user-info-text">
-                    <span class="username" id="displayUsername">Cool Duck</span>
-                    <span class="rank-badge" id="displayRank">Утиный Навигатор</span>
+    <div class="deck-hud">
+        <div class="hud-card credits">
+            <span class="hud-title">Баланс Кредитов</span>
+            <div class="hud-value" style="color: var(--neon-blue);">
+                <span>💾 <span id="val-credits">50</span></span>
+            </div>
+        </div>
+        <div class="hud-card memory">
+            <span class="hud-title">Уровень Эксплойтов</span>
+            <div class="hud-value" style="color: var(--neon-green);">
+                <span>⚙️ Lvl <span id="val-exploit">1</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="system-bars">
+        <div class="bar-box">
+            <div class="bar-labels">
+                <span>Отказоустойчивость Деки (ЦП)</span>
+                <span id="lbl-cpu">100%</span>
+            </div>
+            <div class="bar-bg">
+                <div class="bar-fill cpu" id="fill-cpu" style="width: 100%;"></div>
+            </div>
+        </div>
+        <div class="bar-box">
+            <div class="bar-labels">
+                <span>Пропускная способность Сигнала</span>
+                <span id="lbl-signal">100%</span>
+            </div>
+            <div class="bar-bg">
+                <div class="bar-fill signal" id="fill-signal" style="width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="screen-space">
+        <div class="screen active" id="net-screen">
+            <div class="console-log" id="log-box">
+                <div class="log-line system">> Инициализация сетевых шлюзов... Готово.</div>
+                <div class="log-line system">> Wortiix-Дека запущена в скрытом режиме. Спецификации загружены.</div>
+            </div>
+            <div class="network-grid" id="network-nodes-list"></div>
+        </div>
+
+        <div class="screen" id="deck-screen">
+            <h2 style="font-size: 13px; text-transform: uppercase; color: var(--neon-green); margin-bottom: 15px; letter-spacing: 1px;">Модернизация кибер-оборудования</h2>
+            <div class="upgrade-list">
+                <div class="upgrade-card">
+                    <div class="up-info">
+                        <h3>Нано-процессор ядра</h3>
+                        <p>Повышает отказоустойчивость на +20%</p>
+                    </div>
+                    <button class="buy-btn" id="btn-up-cpu">💾 <span id="up-cpu-cost">30</span></button>
+                </div>
+                <div class="upgrade-card">
+                    <div class="up-info">
+                        <h3>Пакет эксплойтов "Вектор"</h3>
+                        <p>Увеличивает взламывающую способность на +1</p>
+                    </div>
+                    <button class="buy-btn" id="btn-up-exploit">💾 <span id="up-exploit-cost">50</span></button>
+                </div>
+                <div class="upgrade-card">
+                    <div class="up-info">
+                        <h3>Шифрованный VPN-туннель</h3>
+                        <p>Улучшает силу пропускного сигнала на +25%</p>
+                    </div>
+                    <button class="buy-btn" id="btn-up-signal">💾 <span id="up-signal-cost">40</span></button>
                 </div>
             </div>
-            <div class="passive-income-panel">
-                Доход: <span id="incomeVal">+0.0 / с</span>
-            </div>
         </div>
 
-        <!-- Баланс -->
-        <div class="balance-container">
-            <span class="balance-title">Баланс утиных токенов</span>
-            <div class="balance-value">
-                <span class="balance-coin-icon">🟡</span>
-                <span id="balanceVal">0.00</span>
-            </div>
-        </div>
-
-        <!-- Прокачка -->
-        <div class="game-viewport">
-            <div class="section-title">Апгрейды производства</div>
-            <div class="cards-grid" id="upgradesGrid">
-                <!-- Карточки будут сгенерированы динамически -->
-            </div>
-        </div>
-
-        <!-- Футер меню -->
-        <div class="bottom-nav">
-            <div class="nav-item active">
-                <span class="nav-item-icon">🕶️</span>
-                <span>Главная</span>
-            </div>
-            <div class="nav-item" onclick="alert('Утиный Клан в разработке!')">
-                <span class="nav-item-icon">🦆</span>
-                <span>Кланы</span>
-            </div>
-            <div class="nav-item" onclick="alert('Рефералы будут доступны в бета-версии!')">
-                <span class="nav-item-icon">👥</span>
-                <span>Друзья</span>
+        <div class="screen" id="ice-screen">
+            <div class="ice-overlay">
+                <div class="ice-window">
+                    <div>
+                        <div class="ice-title" id="ice-title">Внимание: Сработал Триггер Безопасности!</div>
+                        <div class="ice-desc" id="ice-desc">Система обнаружила вашу активность.</div>
+                    </div>
+                    <div class="ice-choices" id="ice-choices-list"></div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    // Телеграм Инициализация
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+    <div class="nav-tabs">
+        <div class="tab-item active" id="tab-net">
+            <span style="font-size: 14px;">🌐</span>
+            <span>Сети</span>
+        </div>
+        <div class="tab-item" id="tab-deck">
+            <span style="font-size: 14px;">🛠️</span>
+            <span>Дека</span>
+        </div>
+    </div>
 
-    // Переменные состояния
-    let progress = 0;
-    let balance = 100.00;
-    let incomePerSecond = 0;
-
-    // Карточки прокачки
-    const upgrades = {
-        duckGlasses: { id: 'duckGlasses', name: 'Модные очки', level: 0, cost: 50, costMultiplier: 1.5, income: 0.5, icon: '🕶️' },
-        rubberPool: { id: 'rubberPool', name: 'Резиновый бассейн', level: 0, cost: 200, costMultiplier: 1.6, income: 2.5, icon: '🛁' },
-        cryptoPond: { id: 'cryptoPond', name: 'Крипто-Пруд', level: 0, cost: 1000, costMultiplier: 1.7, income: 15.0, icon: '🌊' },
-        quackBank: { id: 'quackBank', name: 'Кряк-ИнвестБанк', level: 0, cost: 5000, costMultiplier: 1.8, income: 85.0, icon: '🏦' }
-    };
-
-    // Настройка анимации экрана входа (лоудера)
-    const circle = document.getElementById('loadingCircle');
-    const percentText = document.getElementById('loaderPercent');
-    const radius = circle.r.baseVal.value;
-    const circumference = 2 * Math.PI * radius;
-
-    // Плавная загрузка
-    const loadingInterval = setInterval(() => {
-        progress += Math.floor(Math.random() * 8) + 2;
-        if (progress >= 100) {
-            progress = 100;
-            clearInterval(loadingInterval);
+    <script>
+        // ЛОГИКА ТАЙМЕРА ЗАСТАВКИ
+        window.addEventListener('DOMContentLoaded', () => {
+            const bar = document.getElementById('splash-bar');
+            const splash = document.getElementById('splash-screen');
             
-            // Завершаем лоадер и переходим к игре
+            // Запускаем заполнение полосы до 100%
             setTimeout(() => {
-                document.getElementById('splash-screen').classList.add('fade-out');
-                document.getElementById('game-interface').classList.add('active');
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            }, 500);
-        }
+                bar.style.width = '100%';
+            }, 50);
 
-        // Обновляем круговой SVG лоудер
-        const offset = circumference - (progress / 100) * circumference;
-        circle.style.strokeDashoffset = offset;
-        percentText.textContent = `${progress}%`;
-    }, 150);
+            // Через 3.5 секунды плавно убираем заставку
+            setTimeout(() => {
+                splash.classList.add('hidden');
+            }, 3500);
+        });
 
-    // Загрузка сохранений
-    function loadSave() {
-        const saved = localStorage.getItem('duck_my_duck_progressive_save');
-        if (saved) {
+        // Интеграция Telegram WebApp SDK
+        let tg = null;
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
             try {
-                const parsed = JSON.parse(saved);
-                balance = parsed.balance || 100.00;
-                for (let key in parsed.upgrades) {
-                    if (upgrades[key]) {
-                        upgrades[key].level = parsed.upgrades[key].level;
-                    }
+                tg.expand();
+                tg.ready();
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    const name = tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name;
+                    document.getElementById('user-display').innerText = "NETRUNNER: @" + name.toUpperCase();
                 }
             } catch(e) {}
         }
-        recalculateIncome();
-    }
 
-    function saveGame() {
-        const data = {
-            balance: balance,
-            upgrades: Object.keys(upgrades).reduce((acc, cur) => {
-                acc[cur] = { level: upgrades[cur].level };
-                return acc;
-            }, {})
+        // Архитектура состояния (state)
+        let deck = {
+            credits: 50,
+            exploitLvl: 1,
+            cpuMax: 100,
+            cpuCurr: 100,
+            signalMax: 100,
+            signalCurr: 100,
+            upCpuCost: 30,
+            upExploitCost: 50,
+            upSignalCost: 40
         };
-        localStorage.setItem('duck_my_duck_progressive_save', JSON.stringify(data));
-    }
 
-    // Рассчет пассивного дохода
-    function recalculateIncome() {
-        incomePerSecond = 0;
-        for (let key in upgrades) {
-            incomePerSecond += upgrades[key].level * upgrades[key].income;
-        }
-        document.getElementById('incomeVal').textContent = `+${incomePerSecond.toFixed(1)}/с`;
-    }
+        const nodes = [
+            { id: 'sub_net', name: 'Локальная Подсеть', diff: 1, reward: 15, hazard: 0.15, desc: 'Простые хранилища данных малого офиса.' },
+            { id: 'bank_db', name: 'Шлюз Второго Банка', diff: 2, reward: 40, hazard: 0.35, desc: 'Защищенные финансовые реестры.' },
+            { id: 'military_net', name: 'Сеть ВПК Корпораций', diff: 3, reward: 120, hazard: 0.55, desc: 'Строго охраняемый военный контур.' },
+            { id: 'core_mainframe', name: 'Главный Мейнфрейм "Arasaka"', diff: 4, reward: 450, hazard: 0.80, desc: 'Ядро искусственного интеллекта.' }
+        ];
 
-    // Рассчет стоимости
-    function getCost(upg) {
-        return Math.floor(upg.cost * Math.pow(upg.costMultiplier, upg.level));
-    }
+        const syncLed = document.getElementById('sync-led');
+        const syncLbl = document.getElementById('sync-lbl');
 
-    // Отрисовка карточек
-    function renderCards() {
-        const container = document.getElementById('upgradesGrid');
-        container.innerHTML = '';
+        function loadSave() {
+            const local = localStorage.getItem('wortiix_save_data');
+            if (local) {
+                try {
+                    deck = JSON.parse(local);
+                    renderAll();
+                } catch(e) {}
+            }
 
-        for (let key in upgrades) {
-            const upg = upgrades[key];
-            const currentCost = getCost(upg);
-            const canBuy = balance >= currentCost;
-
-            const card = document.createElement('div');
-            card.className = `upgrade-card ${canBuy ? 'affordable' : ''}`;
-            card.innerHTML = `
-                <div class="card-left">
-                    <div class="card-icon">${upg.icon}</div>
-                    <div class="card-details">
-                        <span class="card-name">${upg.name}</span>
-                        <span class="card-level">Уровень ${upg.level}</span>
-                        <span class="card-effect">Доход: +${(upg.level * upg.income).toFixed(1)}/с (+${upg.income}/с)</span>
-                    </div>
-                </div>
-                <button class="buy-button ${canBuy ? '' : 'locked'}" onclick="buyUpgrade('${key}')">
-                    ${currentCost} 🟡
-                </button>
-            `;
-            container.appendChild(card);
-        }
-    }
-
-    // Покупка улучшений
-    window.buyUpgrade = function(key) {
-        const upg = upgrades[key];
-        const cost = getCost(upg);
-
-        if (balance >= cost) {
-            balance -= cost;
-            upg.level++;
-            
-            recalculateIncome();
-            renderCards();
-            updateUI();
-            saveGame();
-            
-            // Взрыв монет
-            createCoinExplosion();
-
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-        } else {
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-        }
-    };
-
-    function updateUI() {
-        document.getElementById('balanceVal').textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    // Эффект взрыва монет (Canvas)
-    const canvas = document.getElementById('effect-canvas');
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-
-    function resizeCanvas() {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    class CoinParticle {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-            this.radius = Math.random() * 6 + 4;
-            this.angle = Math.random() * Math.PI * 2;
-            this.speed = Math.random() * 5 + 3;
-            this.vx = Math.cos(this.angle) * this.speed;
-            this.vy = Math.sin(this.angle) * this.speed - 3; // Вверх
-            this.gravity = 0.25;
-            this.alpha = 1;
-            this.decay = Math.random() * 0.02 + 0.015;
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += this.gravity;
-            this.alpha -= this.decay;
-        }
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = '#f39c12';
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.restore();
-        }
-    }
-
-    function createCoinExplosion() {
-        const x = canvas.width / 2;
-        const y = canvas.height / 2;
-        for (let i = 0; i < 20; i++) {
-            particles.push(new CoinParticle(x, y));
-        }
-    }
-
-    function animateParticles() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
-            p.update();
-            p.draw();
-            if (p.alpha <= 0) {
-                particles.splice(i, 1);
+            if (tg && tg.CloudStorage) {
+                syncLed.classList.add('syncing');
+                syncLbl.innerText = 'WORTIIX // СИНХРОНИЗАЦИЯ...';
+                tg.CloudStorage.getItem('wortiix_cloud_save_v3', (err, val) => {
+                    syncLed.classList.remove('syncing');
+                    syncLbl.innerText = 'WORTIIX DECK // ONLINE';
+                    if (!err && val) {
+                        try {
+                            const cloudData = JSON.parse(val);
+                            if (cloudData && cloudData.credits > deck.credits) {
+                                deck = cloudData;
+                                renderAll();
+                                addLog("Синхронизация с серверами Telegram завершена.", "accent");
+                            }
+                        } catch(e) {}
+                    }
+                });
             }
         }
-        requestAnimationFrame(animateParticles);
-    }
-    animateParticles();
 
-    // Каждую секунду пассивный доход
-    let lastTick = Date.now();
-    setInterval(() => {
-        const now = Date.now();
-        const delta = (now - lastTick) / 1000;
-        lastTick = now;
-
-        if (incomePerSecond > 0) {
-            balance += incomePerSecond * delta;
-            updateUI();
+        function saveGame(forceCloud = false) {
+            localStorage.setItem('wortiix_save_data', JSON.stringify(deck));
+            if (tg && tg.CloudStorage && forceCloud) {
+                syncLed.classList.add('syncing');
+                syncLbl.innerText = 'ЗАПИСЬ ДАННЫХ В ОБЛАКО...';
+                tg.CloudStorage.setItem('wortiix_cloud_save_v3', JSON.stringify(deck), (err) => {
+                    syncLed.classList.remove('syncing');
+                    syncLbl.innerText = 'WORTIIX DECK // ONLINE';
+                });
+            }
         }
 
-        // Обновляем доступность карточек
-        renderCards();
-    }, 100);
+        const logBox = document.getElementById('log-box');
+        function addLog(text, type = 'system') {
+            const div = document.createElement('div');
+            div.className = `log-line ${type}`;
+            div.innerText = `> ${text}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
 
-    // Автосохранение
-    setInterval(saveGame, 5000);
+        function renderAll() {
+            document.getElementById('val-credits').innerText = Math.floor(deck.credits).toLocaleString('ru-RU');
+            document.getElementById('val-exploit').innerText = deck.exploitLvl;
+            document.getElementById('lbl-cpu').innerText = `${deck.cpuCurr}%`;
+            document.getElementById('fill-cpu').style.width = `${deck.cpuCurr}%`;
+            document.getElementById('lbl-signal').innerText = `${deck.signalCurr}%`;
+            document.getElementById('fill-signal').style.width = `${deck.signalCurr}%`;
 
-    // Старт
-    loadSave();
-    updateUI();
-</script>
+            document.getElementById('up-cpu-cost').innerText = deck.upCpuCost;
+            document.getElementById('up-exploit-cost').innerText = deck.upExploitCost;
+            document.getElementById('up-signal-cost').innerText = deck.upSignalCost;
+
+            document.getElementById('btn-up-cpu').disabled = (deck.credits < deck.upCpuCost || deck.cpuMax >= 200);
+            document.getElementById('btn-up-exploit').disabled = (deck.credits < deck.upExploitCost);
+            document.getElementById('btn-up-signal').disabled = (deck.credits < deck.upSignalCost || deck.signalMax >= 200);
+
+            const nodesContainer = document.getElementById('network-nodes-list');
+            nodesContainer.innerHTML = '';
+
+            nodes.forEach(node => {
+                const isAvailable = deck.exploitLvl >= node.diff;
+                const card = document.createElement('div');
+                card.className = 'node-card';
+                card.innerHTML = `
+                    <div class="node-info">
+                        <h3>${node.name} [Lvl ${node.diff}]</h3>
+                        <p>${node.desc}</p>
+                        <p style="color: var(--neon-blue); font-weight: bold; margin-top: 3px;">
+                            Награда: 💾 ${node.reward} | Риск: ${Math.round(node.hazard * 100)}%
+                        </p>
+                    </div>
+                    <div>
+                        <button class="hack-btn" ${isAvailable ? '' : 'disabled'} onclick="tryHack('${node.id}')">
+                            ${isAvailable ? 'Взлом' : 'Заперто'}
+                        </button>
+                    </div>
+                `;
+                nodesContainer.appendChild(card);
+            });
+        }
+
+        let currentActiveNode = null;
+        window.tryHack = function(nodeId) {
+            if (deck.signalCurr < 30) {
+                addLog("ВНИМАНИЕ: Слишком слабый уровень сигнала!", "error");
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                return;
+            }
+            deck.signalCurr = Math.max(10, deck.signalCurr - 20);
+            currentActiveNode = nodes.find(n => n.id === nodeId);
+
+            if (Math.random() < currentActiveNode.hazard) {
+                triggerIceEvent();
+            } else {
+                deck.credits += currentActiveNode.reward;
+                addLog(`УСПЕШНЫЙ ПРОРЫВ: Взломан ${currentActiveNode.name}. Получено 💾 ${currentActiveNode.reward} кр.`, "accent");
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                currentActiveNode = null;
+                renderAll();
+                saveGame(true);
+            }
+        };
+
+        function triggerIceEvent() {
+            switchActiveScreen('ice-screen');
+            const list = document.getElementById('ice-choices-list');
+            const desc = document.getElementById('ice-desc');
+            const title = document.getElementById('ice-title');
+            title.innerText = "ОБНАРУЖЕНО ПРОТИВОДЕЙСТВИЕ ICE!";
+            desc.innerText = `Защитный брандмауэр зафиксировал сессию в ${currentActiveNode.name}.`;
+            list.innerHTML = `
+                <button class="choice-btn" onclick="handleIceDecision('counter_hack')">⚡ Контр-атаковать</button>
+                <button class="choice-btn" onclick="handleIceDecision('reboot_deck')">⚙️ Перезагрузка деки</button>
+            `;
+        }
+
+        window.handleIceDecision = function(choice) {
+            if(choice === 'counter_hack') {
+                if (Math.random() < 0.4) {
+                    deck.credits += currentActiveNode.reward;
+                    addLog("Контр-атака успешна!", "accent");
+                } else {
+                    deck.cpuCurr = Math.max(10, deck.cpuCurr - 30);
+                    addLog("Контр-атака провалена. ЦП поврежден.", "error");
+                }
+            } else {
+                deck.cpuCurr = Math.max(10, deck.cpuCurr - 15);
+                addLog("Связь разорвана.", "system");
+            }
+            switchActiveScreen('net-screen');
+            currentActiveNode = null;
+            renderAll();
+            saveGame(true);
+        };
+
+        document.getElementById('btn-up-cpu').addEventListener('click', () => {
+            if (deck.credits >= deck.upCpuCost) { deck.credits -= deck.upCpuCost; deck.cpuMax += 20; deck.cpuCurr = deck.cpuMax; deck.upCpuCost = Math.round(deck.upCpuCost * 1.9); renderAll(); saveGame(true); }
+        });
+        document.getElementById('btn-up-exploit').addEventListener('click', () => {
+            if (deck.credits >= deck.upExploitCost) { deck.credits -= deck.upExploitCost; deck.exploitLvl += 1; deck.upExploitCost = Math.round(deck.upExploitCost * 2.1); renderAll(); saveGame(true); }
+        });
+        document.getElementById('btn-up-signal').addEventListener('click', () => {
+            if (deck.credits >= deck.upSignalCost) { deck.credits -= deck.upSignalCost; deck.signalMax += 25; deck.signalCurr = deck.signalMax; deck.upSignalCost = Math.round(deck.upSignalCost * 1.9); renderAll(); saveGame(true); }
+        });
+
+        setInterval(() => { if (deck.signalCurr < deck.signalMax) { deck.signalCurr = Math.min(deck.signalMax, deck.signalCurr + 5); renderAll(); } }, 3000);
+        setInterval(() => { saveGame(false); }, 5000);
+
+        const tabNet = document.getElementById('tab-net');
+        const tabDeck = document.getElementById('tab-deck');
+        function switchActiveScreen(id) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+            if (id === 'net-screen') tabNet.classList.add('active');
+            if (id === 'deck-screen') tabDeck.classList.add('active');
+        }
+        tabNet.addEventListener('click', () => switchActiveScreen('net-screen'));
+        tabDeck.addEventListener('click', () => switchActiveScreen('deck-screen'));
+
+        loadSave();
+    </script>
 </body>
 </html>
+
+```
+eof
+### 🔍 На что обратить внимание в коде:
+В строке 183 указан тег картинки:
+```html
+<img src="logo.jpg" class="splash-img" alt="Wortiix Loading...">
