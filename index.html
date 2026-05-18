@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
-<html lang="ru" class="h-full bg-slate-950 text-slate-100 select-none">
+<html lang="ru" class="h-full bg-black text-slate-100 select-none">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hamster Kombat - Симулятор CEO</title>
+    <title>Hamster Kombat - Exact WebApp Clone</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,15 +12,13 @@
             theme: {
                 extend: {
                     colors: {
-                        gold: {
-                            400: '#F3BA2F',
-                            500: '#E5A91A',
-                            600: '#C79210',
-                        },
-                        dark: {
-                            800: '#1c1f24',
-                            900: '#15181c',
-                            950: '#0e1013',
+                        hamster: {
+                            dark: '#0e1013',
+                            card: '#1c1f24',
+                            border: '#2e323a',
+                            gold: '#f3ba2f',
+                            accent: '#4e5564',
+                            textMuted: '#8b8e96',
                         }
                     }
                 }
@@ -28,345 +26,562 @@
         }
     </script>
     <style>
-        /* Предотвращение выделения текста и двойного тапа для зума на iOS */
+        /* Предотвращение зума и выделений */
         * {
             -webkit-tap-highlight-color: transparent;
             user-select: none;
+            outline: none;
         }
-        
-        /* Анимация летящих цифр при клике */
-        @keyframes floatUp {
-            0% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-120px) scale(0.8) rotate(5deg);
-            }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        .click-particle {
+        /* Всплывающие цифры при клике */
+        @keyframes tapFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-100px) scale(0.8); }
+        }
+        .tap-particle {
             position: absolute;
-            animation: floatUp 0.8s cubic-bezier(0.25, 1, 0.50, 1) forwards;
+            animation: tapFloat 0.7s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
             pointer-events: none;
         }
-
-        /* Анимация пульсации золотого свечения за хомяком */
-        @keyframes subtlePulse {
-            0%, 100% { transform: scale(1); opacity: 0.15; }
-            50% { transform: scale(1.15); opacity: 0.25; }
+        /* Тряска при неверном действии */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
         }
-        .glow-bg {
-            animation: subtlePulse 4s ease-in-out infinite;
+        .shake {
+            animation: shake 0.2s ease-in-out 2;
         }
-
-        /* Анимация сжатия при клике */
-        .hamster-btn {
-            transition: transform 0.05s ease-out;
+        /* Стилизация скроллбара */
+        ::-webkit-scrollbar {
+            width: 4px;
         }
-        .hamster-btn:active {
-            transform: scale(0.92);
+        ::-webkit-scrollbar-thumb {
+            background: #2e323a;
+            border-radius: 2px;
         }
     </style>
 </head>
-<body class="h-full flex justify-center items-center bg-black overflow-hidden font-sans">
+<body class="h-full flex justify-center items-center bg-zinc-950 overflow-hidden">
 
-    <!-- Основной контейнер, стилизованный под мобильный телефон на ПК -->
-    <div class="relative w-full max-w-md h-full md:h-[850px] md:rounded-[40px] md:border-8 md:border-slate-800 bg-dark-950 flex flex-col justify-between overflow-hidden shadow-2xl">
+    <!-- Основной контейнер мобильного приложения (адаптивный под десктоп/мобилку) -->
+    <div class="relative w-full max-w-md h-full md:h-[880px] md:rounded-[42px] md:border-[10px] md:border-[#2e323a] bg-hamster-dark flex flex-col justify-between overflow-hidden shadow-2xl">
         
-        <!-- Кастомный Тост / Всплывашка -->
-        <div id="toast" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 bg-slate-800/90 border border-gold-500/30 text-white px-4 py-2 rounded-2xl text-xs font-semibold shadow-xl transition-all duration-300 pointer-events-none flex items-center gap-2">
-            <span class="w-2 h-2 bg-gold-400 rounded-full animate-ping"></span>
-            <span id="toast-text">Успешно!</span>
-        </div>
-
-        <!-- ВЕРХНЯЯ ПАНЕЛЬ СЕО -->
-        <header class="p-4 bg-dark-900 border-b border-slate-800/60 shrink-0">
-            <!-- Выбор биржи и инфо -->
+        <!-- ХЕДЕР СЕО (Показатели) -->
+        <header class="p-4 pb-2 bg-gradient-to-b from-black to-hamster-dark border-b border-hamster-border/30 shrink-0 z-20">
             <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 bg-amber-500/20 rounded-lg flex items-center justify-center text-amber-400 border border-amber-500/30">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+                <!-- Профиль игрока -->
+                <div class="flex items-center gap-2" onclick="openExchangeSelector()">
+                    <div class="w-8 h-8 rounded-lg bg-hamster-card border border-hamster-border flex items-center justify-center text-lg overflow-hidden" id="header-exchange-logo">
+                        🏦
                     </div>
                     <div>
-                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Биржа</div>
-                        <div class="text-xs font-bold text-white">Hamster Dex (CEO)</div>
+                        <div class="text-[10px] text-hamster-textMuted font-bold uppercase tracking-wider leading-none">Биржа</div>
+                        <div class="text-xs font-black text-white flex items-center gap-1">
+                            <span id="current-exchange-name">Binance</span>
+                            <svg class="w-3 h-3 text-hamster-textMuted" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5H7z"/></svg>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="bg-slate-800/40 border border-slate-700/30 px-3 py-1 rounded-full text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+
+                <!-- Мульти-лига -->
+                <div class="flex items-center gap-1.5 bg-hamster-card/60 border border-hamster-border/50 px-3 py-1 rounded-full text-[11px] font-bold">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span id="user-tier">Бронза (1/10)</span>
+                    <span id="level-title" class="text-white">Bronze</span>
                 </div>
             </div>
 
-            <!-- Главные параметры биржи -->
-            <div class="grid grid-cols-3 gap-2">
-                <div class="bg-dark-800/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wide mb-0.5">Прибыль за тап</span>
-                    <span id="stat-earn-per-tap" class="text-xs font-black text-gold-400">+1</span>
+            <!-- Три главные карточки показателей -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <!-- За тап -->
+                <div onclick="triggerCipherCheat()" class="bg-hamster-card border border-hamster-border p-1.5 rounded-xl cursor-pointer active:scale-95 transition-transform">
+                    <span class="block text-[8px] text-hamster-textMuted font-bold uppercase tracking-wide">Прибыль за тап</span>
+                    <div class="flex items-center justify-center gap-1 mt-0.5">
+                        <span class="text-hamster-gold text-xs">🪙</span>
+                        <span id="stat-per-tap" class="text-xs font-black text-white">+1</span>
+                    </div>
                 </div>
-                <div class="bg-dark-800/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wide mb-0.5">PPH (Прибыль в час)</span>
-                    <span id="stat-profit-per-hour" class="text-xs font-black text-emerald-400">+0</span>
+                <!-- Для апа -->
+                <div class="bg-hamster-card border border-hamster-border p-1.5 rounded-xl">
+                    <span class="block text-[8px] text-hamster-textMuted font-bold uppercase tracking-wide">До след. уровня</span>
+                    <div class="flex items-center justify-center gap-1 mt-0.5">
+                        <span id="stat-to-up" class="text-xs font-black text-amber-500">5.00K</span>
+                    </div>
                 </div>
-                <div class="bg-dark-800/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wide mb-0.5">До лиги</span>
-                    <span id="stat-next-level" class="text-xs font-black text-indigo-400">5K</span>
+                <!-- В час -->
+                <div class="bg-hamster-card border border-hamster-border p-1.5 rounded-xl">
+                    <span class="block text-[8px] text-hamster-textMuted font-bold uppercase tracking-wide">Прибыль в час</span>
+                    <div class="flex items-center justify-center gap-1 mt-0.5 text-emerald-400">
+                        <span class="text-xs">📈</span>
+                        <span id="stat-pph" class="text-xs font-black">+0</span>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <!-- ЦЕНТРАЛЬНЫЙ КОНТЕНТ (СКРОЛЛЯЩИЙСЯ) -->
-        <div class="flex-1 overflow-y-auto pb-4 relative">
-            
-            <!-- ЭКРАН 1: ТАПЕР (ГЛАВНЫЙ) -->
-            <section id="screen-tap" class="game-screen h-full flex flex-col justify-between py-6 px-6">
-                <!-- Счётчик баланса -->
-                <div class="text-center my-2">
-                    <div class="flex items-center justify-center gap-2 mb-1">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-b from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
-                            <span class="text-xl font-black text-slate-950">$</span>
+        <!-- ЦЕНТРАЛЬНОЕ ИГРОВОЕ ПОЛЕ -->
+        <div class="flex-1 overflow-y-auto relative bg-hamster-dark pb-16">
+
+            <!-- Вкладка: БИРЖА (ГЛАВНАЯ) -->
+            <section id="tab-exchange-content" class="tab-view h-full flex flex-col justify-between p-4 gap-4">
+                
+                <!-- Три интерактивные плашки: Combo, Cipher, Mini-game -->
+                <div class="grid grid-cols-3 gap-2">
+                    <!-- Daily Combo -->
+                    <div onclick="switchTab('mine')" class="bg-gradient-to-br from-amber-500/10 to-hamster-card border border-amber-500/20 p-2 rounded-xl flex flex-col justify-between h-16 cursor-pointer active:scale-95 transition-transform">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[9px] font-bold text-slate-300">Daily Combo</span>
+                            <span class="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Готово
+                            </span>
                         </div>
-                        <span id="main-balance" class="text-4xl md:text-5xl font-black tracking-tight text-white">0</span>
+                        <div class="flex gap-1 justify-center mt-1">
+                            <div id="combo-slot-1" class="w-5 h-5 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px]">❓</div>
+                            <div id="combo-slot-2" class="w-5 h-5 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px]">❓</div>
+                            <div id="combo-slot-3" class="w-5 h-5 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px]">❓</div>
+                        </div>
                     </div>
-                    <span class="text-xs text-slate-400 font-medium">Ваш капитал крипто-империи</span>
+
+                    <!-- Daily Cipher -->
+                    <div onclick="openCipherModal()" class="bg-gradient-to-br from-rose-500/10 to-hamster-card border border-rose-500/20 p-2 rounded-xl flex flex-col justify-between h-16 cursor-pointer active:scale-95 transition-transform">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[9px] font-bold text-slate-300">Daily Cipher</span>
+                            <span id="cipher-status-indicator" class="text-[9px] text-rose-400 font-bold">1M 🪙</span>
+                        </div>
+                        <div class="text-center text-xs font-black text-rose-400 py-1" id="cipher-status-text">
+                            ⚠️ ШИФР
+                        </div>
+                    </div>
+
+                    <!-- Mini-Game -->
+                    <div onclick="openMiniGame()" class="bg-gradient-to-br from-indigo-500/10 to-hamster-card border border-indigo-500/20 p-2 rounded-xl flex flex-col justify-between h-16 cursor-pointer active:scale-95 transition-transform">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[9px] font-bold text-slate-300">Mini-Game</span>
+                            <span class="text-[9px] text-indigo-400 font-bold">Ключ 🔑</span>
+                        </div>
+                        <div class="text-center text-[11px] font-black text-indigo-300 py-1">
+                            ИГРАТЬ 🎮
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Зона тапа с хомяком -->
-                <div class="relative flex items-center justify-center my-auto min-h-[260px]">
-                    <!-- Свечение на заднем плане -->
-                    <div class="glow-bg absolute w-64 h-64 rounded-full bg-gradient-to-r from-gold-500/30 to-amber-500/10 blur-3xl -z-10"></div>
-                    
-                    <!-- Кнопка клика (Хомяк) -->
-                    <button id="hamster-trigger" class="hamster-btn focus:outline-none relative w-60 h-60 rounded-full bg-gradient-to-b from-slate-900 to-slate-800 border-[10px] border-slate-800/60 shadow-inner flex items-center justify-center">
-                        <div class="absolute inset-2 rounded-full bg-gradient-to-b from-slate-800 to-slate-900 shadow-2xl flex items-center justify-center">
-                            
-                            <!-- Нарисованный Хомяк (CEO) на SVG -->
-                            <svg class="w-44 h-44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <!-- Тело и Пиджак -->
-                                <path d="M25 75C25 60 35 55 50 55C65 55 75 60 75 75V85H25V75Z" fill="#1e293b"/>
-                                <!-- Воротничок рубашки -->
-                                <path d="M42 55L50 64L58 55H42Z" fill="#ffffff"/>
-                                <!-- Галстук -->
-                                <path d="M48 62L52 62L53 74L50 78L47 74L48 62Z" fill="#ef4444"/>
-                                
-                                <!-- Лапки -->
-                                <circle cx="30" cy="72" r="5" fill="#fbcfe8"/>
-                                <circle cx="70" cy="72" r="5" fill="#fbcfe8"/>
-                                
-                                <!-- Голова хомяка -->
-                                <ellipse cx="50" cy="38" rx="26" ry="22" fill="#d97706"/>
-                                <!-- Белые щечки -->
-                                <ellipse cx="34" cy="44" rx="10" ry="8" fill="#fef3c7"/>
-                                <ellipse cx="66" cy="44" rx="10" ry="8" fill="#fef3c7"/>
-                                
-                                <!-- Ушки -->
-                                <circle cx="28" cy="20" r="9" fill="#d97706"/>
-                                <circle cx="28" cy="20" r="5" fill="#fbcfe8"/>
-                                <circle cx="72" cy="20" r="9" fill="#d97706"/>
-                                <circle cx="72" cy="20" r="5" fill="#fbcfe8"/>
-                                
-                                <!-- Глаза -->
-                                <circle cx="40" cy="35" r="4.5" fill="#0f172a"/>
-                                <circle cx="40" cy="33.5" r="1.5" fill="#ffffff"/>
-                                <circle cx="60" cy="35" r="4.5" fill="#0f172a"/>
-                                <circle cx="60" cy="33.5" r="1.5" fill="#ffffff"/>
-                                
-                                <!-- Носик -->
-                                <polygon points="48,40 52,40 50,43" fill="#f43f5e"/>
-                                <!-- Ротик -->
-                                <path d="M46 45C48 47 52 47 54 45" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
-                                
-                                <!-- Зубки хомяка -->
-                                <rect x="48.5" y="45" width="1.5" height="2" fill="#ffffff"/>
-                                <rect x="50" y="45" width="1.5" height="2" fill="#ffffff"/>
-                                
-                                <!-- Румянец -->
-                                <circle cx="31" cy="42" r="3" fill="#f43f5e" opacity="0.4"/>
-                                <circle cx="69" cy="42" r="3" fill="#f43f5e" opacity="0.4"/>
-                            </svg>
-
+                <!-- Баланс и Монета -->
+                <div class="text-center">
+                    <div class="flex items-center justify-center gap-2 mb-0.5">
+                        <!-- Иконка монеты ХК -->
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-b from-hamster-gold to-amber-600 flex items-center justify-center shadow-lg shadow-hamster-gold/20">
+                            <span class="text-lg font-black text-slate-950">$</span>
                         </div>
+                        <span id="main-balance" class="text-3xl md:text-4xl font-black tracking-tight text-white">0</span>
+                    </div>
+                </div>
+
+                <!-- Главная Кнопка Тапа (Хомяк) -->
+                <div class="relative flex items-center justify-center my-auto">
+                    <!-- Заднее свечение (меняет цвет на красный при активации шифра) -->
+                    <div id="hamster-shadow-glow" class="absolute w-60 h-60 rounded-full bg-gradient-to-r from-hamster-gold/15 to-amber-500/5 blur-3xl -z-10 transition-colors duration-500"></div>
+                    
+                    <!-- Кликер хомяка -->
+                    <div id="hamster-tap-area" class="relative w-56 h-56 rounded-full bg-gradient-to-b from-hamster-border/80 to-hamster-dark border-[8px] border-hamster-border/50 shadow-inner flex items-center justify-center cursor-pointer transition-transform duration-75 active:scale-95">
+                        <div class="absolute inset-1.5 rounded-full bg-gradient-to-b from-hamster-card to-hamster-dark flex items-center justify-center overflow-hidden">
+                            <!-- SVG Хомяк СЕО -->
+                            <svg class="w-40 h-40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Ушки -->
+                                <circle cx="28" cy="22" r="10" fill="#d97706"/>
+                                <circle cx="28" cy="22" r="6" fill="#fbcfe8"/>
+                                <circle cx="72" cy="22" r="10" fill="#d97706"/>
+                                <circle cx="72" cy="22" r="6" fill="#fbcfe8"/>
+                                <!-- Тело в пиджаке -->
+                                <path d="M22 80C22 62 32 56 50 56C68 56 78 62 78 80V90H22V80Z" fill="#1e293b"/>
+                                <path d="M42 56L50 66L58 56H42Z" fill="#ffffff"/>
+                                <path d="M48 64h4v12h-4z" fill="#ef4444"/>
+                                <!-- Голова -->
+                                <ellipse cx="50" cy="40" rx="26" ry="22" fill="#d97706"/>
+                                <ellipse cx="32" cy="46" rx="10" ry="8" fill="#fef3c7"/>
+                                <ellipse cx="68" cy="46" rx="10" ry="8" fill="#fef3c7"/>
+                                <!-- Глаза -->
+                                <circle cx="40" cy="36" r="4.5" fill="#0f172a"/>
+                                <circle cx="40" cy="34.5" r="1.5" fill="#ffffff"/>
+                                <circle cx="60" cy="36" r="4.5" fill="#0f172a"/>
+                                <circle cx="60" cy="34.5" r="1.5" fill="#ffffff"/>
+                                <!-- Нос и усы -->
+                                <polygon points="48,42 52,42 50,45" fill="#f43f5e"/>
+                                <path d="M46 47C48 49 52 49 54 47" stroke="#0f172a" stroke-width="1.5"/>
+                                <!-- Щечки -->
+                                <circle cx="28" cy="44" r="3" fill="#f43f5e" opacity="0.4"/>
+                                <circle cx="72" cy="44" r="3" fill="#f43f5e" opacity="0.4"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Энергия и Уровень -->
+                <div class="w-full flex flex-col gap-1.5 mt-auto">
+                    <!-- Уровень прогресса -->
+                    <div class="flex justify-between items-center text-[11px] font-bold text-hamster-textMuted">
+                        <span id="level-indicator">Уровень 1/11</span>
+                        <span id="level-percent">0%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-hamster-border/40 rounded-full overflow-hidden">
+                        <div id="level-progress-bar" class="bg-gradient-to-r from-hamster-gold to-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+
+                    <!-- Энергетический статус -->
+                    <div class="flex justify-between items-center text-xs font-bold mt-2">
+                        <div class="flex items-center gap-1 text-hamster-gold">
+                            <span>⚡</span>
+                            <span id="energy-counter">1000 / 1000</span>
+                        </div>
+                        <button onclick="switchTab('boosts')" class="text-hamster-gold flex items-center gap-0.5 hover:underline">
+                            <span>🚀</span> Буст
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Вкладка: ШАХТА (MINE) -->
+            <section id="tab-mine-content" class="tab-view hidden p-4 flex flex-col gap-4">
+                
+                <!-- Панель ежедневного комбо внутри Шахты -->
+                <div class="bg-hamster-card border border-hamster-border p-3 rounded-2xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-extrabold text-white flex items-center gap-1">
+                            🎬 Ежедневное комбо
+                        </span>
+                        <span id="combo-bonus-status" class="text-[10px] text-hamster-gold font-bold bg-hamster-gold/10 px-2.5 py-0.5 rounded-full">
+                            Награда: +5,000,000 🪙
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div id="mine-combo-1" class="bg-hamster-dark border border-hamster-border rounded-xl h-16 flex flex-col items-center justify-center text-xs text-hamster-textMuted font-bold">❓</div>
+                        <div id="mine-combo-2" class="bg-hamster-dark border border-hamster-border rounded-xl h-16 flex flex-col items-center justify-center text-xs text-hamster-textMuted font-bold">❓</div>
+                        <div id="mine-combo-3" class="bg-hamster-dark border border-hamster-border rounded-xl h-16 flex flex-col items-center justify-center text-xs text-hamster-textMuted font-bold">❓</div>
+                    </div>
+                </div>
+
+                <!-- Категории карт (PR, Markets, Legal, Web3) -->
+                <div class="flex gap-1 bg-hamster-card p-1 rounded-xl border border-hamster-border">
+                    <button onclick="switchCategory('pr')" id="cat-pr" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg bg-hamster-border text-white transition-all">PR & Team</button>
+                    <button onclick="switchCategory('markets')" id="cat-markets" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg text-hamster-textMuted transition-all">Markets</button>
+                    <button onclick="switchCategory('legal')" id="cat-legal" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg text-hamster-textMuted transition-all">Legal</button>
+                    <button onclick="switchCategory('web3')" id="cat-web3" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg text-hamster-textMuted transition-all">Web3</button>
+                </div>
+
+                <!-- Карточки улучшений -->
+                <div id="upgrades-grid" class="grid grid-cols-2 gap-2.5">
+                    <!-- Заполняется в JS -->
+                </div>
+            </section>
+
+            <!-- Вкладка: ДРУЗЬЯ (FRIENDS) -->
+            <section id="tab-friends-content" class="tab-view hidden p-4 flex flex-col gap-4">
+                <div class="text-center my-4">
+                    <span class="text-4xl">🎁</span>
+                    <h2 class="text-xl font-black mt-2">Пригласите друзей!</h2>
+                    <p class="text-xs text-hamster-textMuted mt-1">Вы и ваш друг получите отличные бонусы за регистрацию.</p>
+                </div>
+
+                <!-- Бонусные блоки -->
+                <div class="flex flex-col gap-2.5">
+                    <div class="bg-hamster-card border border-hamster-border p-3.5 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🧸</span>
+                            <div>
+                                <h4 class="text-xs font-black text-white">Обычный друг</h4>
+                                <span class="text-[10px] text-hamster-gold font-bold">+2,000 для вас и друга</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-hamster-card border border-hamster-border p-3.5 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">👑</span>
+                            <div>
+                                <h4 class="text-xs font-black text-white">Друг с Telegram Premium</h4>
+                                <span class="text-[10px] text-hamster-gold font-bold">+25,000 для вас и друга</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Список рефералов -->
+                <div class="mt-4">
+                    <h3 class="text-xs font-black text-white mb-2 uppercase tracking-wider">Список ваших друзей (0)</h3>
+                    <div class="bg-hamster-card border border-hamster-border p-4 rounded-2xl text-center text-xs text-hamster-textMuted">
+                        Вы еще не пригласили друзей. Станьте первым!
+                    </div>
+                </div>
+
+                <!-- Кнопка копирования инвайт-ссылки -->
+                <div class="mt-auto">
+                    <button onclick="copyInviteLink()" class="w-full bg-gradient-to-r from-hamster-gold to-amber-500 hover:opacity-90 active:scale-95 text-slate-950 font-black py-3 rounded-2xl text-xs uppercase tracking-wider transition-all">
+                        Пригласить друга 👥
                     </button>
                 </div>
-
-                <!-- Нижняя панель энергии -->
-                <div class="w-full flex flex-col gap-2 mt-auto">
-                    <div class="flex justify-between items-center text-xs font-bold">
-                        <div class="flex items-center gap-1.5 text-amber-400">
-                            <svg class="w-4 h-4 text-amber-400 fill-current animate-bounce" viewBox="0 0 24 24"><path d="M11.5 22C11.5 22 17 14 17 9.5C17 5.35786 13.6421 2 9.5 2C5.35786 2 2 5.35786 2 9.5C2 14 7.5 22 7.5 22H11.5ZM6.5 9.5C6.5 11.2 8 12.5 9.5 12.5V14C7 14 5 12 5 9.5H6.5Z"/></svg>
-                            <span>Энергия</span>
-                        </div>
-                        <span id="energy-text" class="text-slate-200">1000 / 1000</span>
-                    </div>
-                    <!-- Бар энергии -->
-                    <div class="w-full h-3 bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50 p-0.5">
-                        <div id="energy-bar" class="bg-gradient-to-r from-amber-500 to-gold-400 h-full rounded-full transition-all duration-100" style="width: 100%"></div>
-                    </div>
-                </div>
             </section>
 
-            <!-- ЭКРАН 2: ШАХТА / КАРТОЧКИ УЛУЧШЕНИЙ -->
-            <section id="screen-mine" class="game-screen hidden p-5 flex flex-col gap-5">
-                <div>
-                    <h2 class="text-xl font-black">Шахта улучшений</h2>
-                    <p class="text-[11px] text-slate-400">Покупайте бизнес-карточки, чтобы развивать пассивный доход в час (PPH).</p>
+            <!-- Вкладка: EARN (ЗАРАБОТАТЬ) -->
+            <section id="tab-earn-content" class="tab-view hidden p-4 flex flex-col gap-4">
+                <div class="text-center my-3">
+                    <span class="text-4xl">🪙</span>
+                    <h2 class="text-xl font-black mt-1">Заработайте больше монет</h2>
+                    <p class="text-xs text-hamster-textMuted mt-0.5">Выполняйте простые квесты для наполнения кошелька.</p>
                 </div>
 
-                <!-- Категории карточек -->
-                <div class="flex gap-1.5 p-1 bg-dark-900 rounded-xl border border-slate-800">
-                    <button onclick="switchCardTab('pr')" id="tab-btn-pr" class="flex-1 py-2 text-[11px] font-bold rounded-lg bg-slate-800 text-white">PR и Команда</button>
-                    <button onclick="switchCardTab('markets')" id="tab-btn-markets" class="flex-1 py-2 text-[11px] font-bold rounded-lg text-slate-400">Рынки</button>
-                    <button onclick="switchCardTab('legal')" id="tab-btn-legal" class="flex-1 py-2 text-[11px] font-bold rounded-lg text-slate-400">Законы</button>
-                </div>
-
-                <!-- Контейнер для карточек -->
-                <div id="cards-container" class="grid grid-cols-2 gap-3 pb-8">
-                    <!-- Будет сгенерировано динамически -->
-                </div>
-            </section>
-
-            <!-- ЭКРАН 3: ЗАДАЧИ И НАГРАДЫ (EARN) -->
-            <section id="screen-earn" class="game-screen hidden p-5 flex flex-col gap-5">
-                <div>
-                    <h2 class="text-xl font-black">Заработок бонусов</h2>
-                    <p class="text-[11px] text-slate-400">Выполняйте простые задачи, чтобы мгновенно увеличить баланс биржи.</p>
-                </div>
-
-                <div class="flex flex-col gap-3">
-                    <!-- Дейли награда -->
-                    <div class="bg-gradient-to-r from-amber-500/10 to-gold-500/15 border border-gold-500/30 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 bg-gold-400/15 rounded-xl flex items-center justify-center text-gold-400 text-2xl">🎁</div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Ежедневная награда</h4>
-                                <span class="text-[10px] text-slate-400">+5,000 монет ежедневно</span>
-                            </div>
-                        </div>
-                        <button onclick="claimDailyReward()" id="daily-claim-btn" class="bg-gold-500 hover:bg-gold-600 active:scale-95 text-slate-950 text-xs font-bold py-2 px-4 rounded-xl transition-all">Забрать</button>
-                    </div>
-
-                    <!-- Таск 1 -->
-                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-11 h-11 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 text-xl">📺</div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Посмотреть YouTube Hamster</h4>
-                                <span class="text-[10px] text-slate-400">+10,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="completeTask(1, 10000)" id="task-btn-1" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Выполнить</button>
-                    </div>
-
-                    <!-- Таск 2 -->
-                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-11 h-11 bg-sky-500/10 rounded-xl flex items-center justify-center text-sky-400 text-xl">✈️</div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Подписка на Telegram-канал</h4>
-                                <span class="text-[10px] text-slate-400">+15,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="completeTask(2, 15000)" id="task-btn-2" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Выполнить</button>
-                    </div>
-
-                    <!-- Таск 3 -->
-                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-11 h-11 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-400 text-xl">🐦</div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Подписка на X (Twitter)</h4>
-                                <span class="text-[10px] text-slate-400">+8,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="completeTask(3, 8000)" id="task-btn-3" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Выполнить</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ЭКРАН 4: ПРОКАЧКА (BOOSTS) -->
-            <section id="screen-boosts" class="game-screen hidden p-5 flex flex-col gap-5">
-                <div>
-                    <h2 class="text-xl font-black">Турбо Бусты</h2>
-                    <p class="text-[11px] text-slate-400">Увеличьте параметры силы клика и запаса энергии.</p>
-                </div>
-
-                <!-- Бесплатные бусты -->
-                <div class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Бесплатный буст</span>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <div class="text-2xl">⚡</div>
-                            <div>
-                                <h4 class="text-xs font-bold text-white">Полная энергия</h4>
-                                <span id="full-energy-count" class="text-[10px] text-slate-400">Доступно: 3 / 3</span>
-                            </div>
-                        </div>
-                        <button onclick="applyFullEnergyBoost()" id="full-energy-btn" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Использовать</button>
-                    </div>
-                </div>
-
-                <!-- Платные бусты -->
-                <div class="flex flex-col gap-3">
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Платные улучшения</span>
+                <!-- Ежедневные задачи -->
+                <div class="flex flex-col gap-2.5">
+                    <span class="text-xs font-black text-white uppercase tracking-wider">Ежедневный список</span>
                     
-                    <!-- Мультитап -->
-                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                    <!-- Daily reward -->
+                    <div class="bg-gradient-to-r from-amber-500/15 to-hamster-card border border-amber-500/20 p-3 rounded-2xl flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-11 h-11 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 text-xl">👆</div>
+                            <span class="text-2xl">📅</span>
                             <div>
-                                <h4 class="text-xs font-bold text-white">Multitap</h4>
-                                <span id="multitap-info" class="text-[10px] text-slate-400">Ур. 1 • Стоимость: 2,000</span>
+                                <h4 class="text-xs font-black text-white">Ежедневная награда</h4>
+                                <span id="daily-reward-sub" class="text-[10px] text-hamster-gold font-bold">+6,600 монет за сегодня</span>
                             </div>
                         </div>
-                        <button onclick="buyMultitap()" class="bg-gold-500 hover:bg-gold-600 active:scale-95 text-slate-950 text-xs font-bold py-2 px-4 rounded-xl transition-all">Купить</button>
+                        <button onclick="claimDailyReward()" id="claim-daily-btn" class="bg-hamster-gold text-slate-950 text-[10px] font-black py-1.5 px-3.5 rounded-lg active:scale-95 transition-all">
+                            ЗАБРАТЬ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Задания соцсетей -->
+                <div class="flex flex-col gap-2.5 mt-2">
+                    <span class="text-xs font-black text-white uppercase tracking-wider">Задания соцсетей</span>
+
+                    <div class="bg-hamster-card border border-hamster-border p-3 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">📺</span>
+                            <div>
+                                <h4 class="text-xs font-black text-white font-medium">Смотреть Hamster Youtube</h4>
+                                <span class="text-[10px] text-hamster-gold font-bold">+100,000 монет</span>
+                            </div>
+                        </div>
+                        <button onclick="completeSocialTask(1, 100000)" id="social-btn-1" class="bg-hamster-border/80 text-white text-[10px] font-bold py-1.5 px-3 rounded-lg active:scale-95 transition-all">ВЫПОЛНИТЬ</button>
                     </div>
 
-                    <!-- Лимит энергии -->
-                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                    <div class="bg-hamster-card border border-hamster-border p-3 rounded-2xl flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-11 h-11 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 text-xl">🔋</div>
+                            <span class="text-xl">✈️</span>
                             <div>
-                                <h4 class="text-xs font-bold text-white">Лимит энергии</h4>
-                                <span id="energylimit-info" class="text-[10px] text-slate-400">Ур. 1 • Стоимость: 3,000</span>
+                                <h4 class="text-xs font-black text-white font-medium">Подписаться на Telegram-канал</h4>
+                                <span class="text-[10px] text-hamster-gold font-bold">+50,000 монет</span>
                             </div>
                         </div>
-                        <button onclick="buyEnergyLimit()" class="bg-gold-500 hover:bg-gold-600 active:scale-95 text-slate-950 text-xs font-bold py-2 px-4 rounded-xl transition-all">Купить</button>
+                        <button onclick="completeSocialTask(2, 50000)" id="social-btn-2" class="bg-hamster-border/80 text-white text-[10px] font-bold py-1.5 px-3 rounded-lg active:scale-95 transition-all">ВЫПОЛНИТЬ</button>
+                    </div>
+
+                    <div class="bg-hamster-card border border-hamster-border p-3 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">🕊️</span>
+                            <div>
+                                <h4 class="text-xs font-black text-white font-medium">Подписаться на X (Twitter)</h4>
+                                <span class="text-[10px] text-hamster-gold font-bold">+50,000 монет</span>
+                            </div>
+                        </div>
+                        <button onclick="completeSocialTask(3, 50000)" id="social-btn-3" class="bg-hamster-border/80 text-white text-[10px] font-bold py-1.5 px-3 rounded-lg active:scale-95 transition-all">ВЫПОЛНИТЬ</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Вкладка: AIRDROP -->
+            <section id="tab-airdrop-content" class="tab-view hidden p-4 flex flex-col gap-4">
+                <div class="text-center my-4">
+                    <span class="text-4xl">🪂</span>
+                    <h2 class="text-xl font-black mt-2">Airdrop Задания</h2>
+                    <p class="text-xs text-hamster-textMuted mt-1">Список задач перед запуском токена на биржах. Выполните всё!</p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <!-- Подключить TON кошелек -->
+                    <div class="bg-gradient-to-r from-blue-500/10 to-hamster-card border border-blue-500/20 p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">💎</span>
+                            <div>
+                                <h4 class="text-xs font-black text-white">Подключить TON Кошелек</h4>
+                                <span id="wallet-status" class="text-[10px] text-hamster-textMuted">Не подключено</span>
+                            </div>
+                        </div>
+                        <button onclick="connectTonWallet()" id="wallet-connect-btn" class="bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-[10px] font-black py-2 px-4 rounded-xl transition-all">
+                            ПОДКЛЮЧИТЬ
+                        </button>
+                    </div>
+
+                    <!-- Чек-лист задач -->
+                    <span class="text-xs font-black text-white uppercase tracking-wider mt-2">Задачи листинга</span>
+                    
+                    <div class="bg-hamster-card border border-hamster-border p-3 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-white">Пройти верификацию Telegram</span>
+                        <span class="text-emerald-400 text-xs">✅ Готово</span>
+                    </div>
+                    <div class="bg-hamster-card border border-hamster-border p-3 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-white">Иметь минимум 1 карточку 15 уровня</span>
+                        <span id="airdrop-task-level" class="text-rose-400 text-xs">❌ Нет</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Вкладка: БУСТЫ (BOOSTS) -->
+            <section id="tab-boosts-content" class="tab-view hidden p-4 flex flex-col gap-4">
+                <div>
+                    <h2 class="text-xl font-black">Усилители (Бусты)</h2>
+                    <p class="text-xs text-hamster-textMuted mt-1">Мгновенно прокачайте силу комбата.</p>
+                </div>
+
+                <!-- Платные усилители -->
+                <div class="flex flex-col gap-3">
+                    <div class="bg-hamster-card border border-hamster-border p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">👆</span>
+                            <div>
+                                <h4 class="text-xs font-black text-white">Multitap</h4>
+                                <span id="multitap-cost-text" class="text-[10px] text-hamster-textMuted">Уровень 1 • 2,000 монет</span>
+                            </div>
+                        </div>
+                        <button onclick="buyMultitap()" class="bg-hamster-gold text-slate-950 text-xs font-black py-2 px-4 rounded-xl active:scale-95 transition-all">ПРОКАЧАТЬ</button>
+                    </div>
+
+                    <div class="bg-hamster-card border border-hamster-border p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🔋</span>
+                            <div>
+                                <h4 class="text-xs font-black text-white">Energy Limit</h4>
+                                <span id="energylimit-cost-text" class="text-[10px] text-hamster-textMuted">Уровень 1 • 3,000 монет</span>
+                            </div>
+                        </div>
+                        <button onclick="buyEnergyLimit()" class="bg-hamster-gold text-slate-950 text-xs font-black py-2 px-4 rounded-xl active:scale-95 transition-all">ПРОКАЧАТЬ</button>
                     </div>
                 </div>
             </section>
 
         </div>
 
-        <!-- НИЖНЕЕ МЕНЮ НАВИГАЦИИ -->
-        <footer class="p-4 bg-dark-900 border-t border-slate-800/80 shrink-0">
+        <!-- ТОСТ-УВЕДОМЛЕНИЕ -->
+        <div id="app-toast" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 bg-slate-800/95 border border-hamster-gold/40 text-white px-4 py-2 rounded-2xl text-xs font-bold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2">
+            <span class="w-1.5 h-1.5 bg-hamster-gold rounded-full animate-ping"></span>
+            <span id="toast-message-text">Уведомление</span>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО: ШИФР (DAILY CIPHER) -->
+        <div id="cipher-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-hamster-card border border-hamster-border w-full max-w-sm rounded-3xl p-6 flex flex-col gap-4 text-center">
+                <h3 class="font-black text-lg text-rose-400">Секретный Шифр Морзе</h3>
+                <p class="text-xs text-hamster-textMuted">Удерживайте кнопку хомяка на главном экране (более 0.3 сек — тире, быстрый клик — точка). Разгадайте слово дня.</p>
+                
+                <div class="bg-black/40 p-3 rounded-2xl border border-hamster-border text-center">
+                    <span class="block text-[10px] text-hamster-textMuted font-bold uppercase mb-1">Ваш текущий ввод</span>
+                    <span id="cipher-word-input" class="text-xl font-black tracking-widest text-white">_ _ _ _</span>
+                </div>
+
+                <div class="text-xs text-left text-slate-300 bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                    <strong>Подсказка слова дня:</strong><br>
+                    Введите слово <span class="text-rose-400 font-bold">HAMSTER</span> на хомяке:<br>
+                    • H (• • • •) &nbsp;&nbsp; • A (• —)<br>
+                    • M (— —) &nbsp;&nbsp; • S (• • •)<br>
+                    • T (—) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • E (•)<br>
+                    • R (• — •)
+                </div>
+
+                <button onclick="closeCipherModal()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-2xl text-xs uppercase tracking-wider transition-all">
+                    Закрыть подсказку
+                </button>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО: МИНИ-ИГРА (KEY MINI-GAME) -->
+        <div id="minigame-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-hamster-card border border-hamster-border w-full max-w-sm rounded-3xl p-6 flex flex-col gap-4 text-center">
+                <h3 class="font-black text-lg text-indigo-400">Соберите Золотой Ключ</h3>
+                <p class="text-xs text-hamster-textMuted">Перетащите ключ к замочной скважине сквозь препятствия за отведенное время!</p>
+                
+                <!-- Поле мини-игры -->
+                <div class="relative w-full h-48 bg-slate-950 rounded-2xl border border-hamster-border overflow-hidden flex items-center justify-center">
+                    <div id="minigame-key" class="absolute left-4 w-12 h-8 bg-gradient-to-r from-hamster-gold to-amber-500 rounded-lg flex items-center justify-center text-lg cursor-pointer transition-all">
+                        🔑
+                    </div>
+                    <div id="minigame-door" class="absolute right-4 w-12 h-12 border-2 border-dashed border-indigo-500/50 rounded-full flex items-center justify-center text-lg">
+                        🔒
+                    </div>
+                    <div id="minigame-obstacle" class="absolute left-1/2 -translate-x-1/2 w-4 h-32 bg-rose-500 rounded-full"></div>
+                </div>
+
+                <div class="flex justify-between items-center text-xs">
+                    <span id="minigame-timer" class="text-rose-400 font-bold">Осталось: 30с</span>
+                    <button onclick="startMiniGame()" class="bg-indigo-500 text-white font-bold py-1.5 px-3 rounded-lg text-[10px] uppercase">Старт</button>
+                </div>
+
+                <button onclick="closeMiniGame()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl text-xs uppercase transition-all">
+                    Закрыть игру
+                </button>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО: ВЫБОР БИРЖИ -->
+        <div id="exchange-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-hamster-card border border-hamster-border w-full max-w-sm rounded-3xl p-6 flex flex-col gap-4">
+                <h3 class="font-black text-lg text-center text-white">Выберите биржу</h3>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="selectExchange('Binance', '🏦')" class="p-3 bg-slate-950 hover:bg-hamster-border/30 rounded-2xl border border-hamster-border flex flex-col items-center gap-2 transition-all">
+                        <span class="text-2xl">🏦</span>
+                        <span class="text-xs font-bold text-white">Binance</span>
+                    </button>
+                    <button onclick="selectExchange('Bybit', '🍊')" class="p-3 bg-slate-950 hover:bg-hamster-border/30 rounded-2xl border border-hamster-border flex flex-col items-center gap-2 transition-all">
+                        <span class="text-2xl">🍊</span>
+                        <span class="text-xs font-bold text-white">Bybit</span>
+                    </button>
+                    <button onclick="selectExchange('OKX', '⬛')" class="p-3 bg-slate-950 hover:bg-hamster-border/30 rounded-2xl border border-hamster-border flex flex-col items-center gap-2 transition-all">
+                        <span class="text-2xl">⬛</span>
+                        <span class="text-xs font-bold text-white">OKX</span>
+                    </button>
+                    <button onclick="selectExchange('Gate.io', '🎯')" class="p-3 bg-slate-950 hover:bg-hamster-border/30 rounded-2xl border border-hamster-border flex flex-col items-center gap-2 transition-all">
+                        <span class="text-2xl">🎯</span>
+                        <span class="text-xs font-bold text-white">Gate.io</span>
+                    </button>
+                </div>
+                
+                <button onclick="closeExchangeSelector()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl text-xs uppercase transition-all">
+                    Отмена
+                </button>
+            </div>
+        </div>
+
+        <!-- НАВИГАЦИОННОЕ МЕНЮ (НА КНОПКАХ) -->
+        <footer class="absolute bottom-0 inset-x-0 bg-hamster-card border-t border-hamster-border/60 p-2 shrink-0 z-20">
             <nav class="flex justify-between items-center gap-1">
-                <button onclick="switchScreen('tap')" id="nav-btn-tap" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-gold-400">
-                    <span class="text-lg">🐹</span>
-                    <span class="text-[9px] font-bold">Главная</span>
+                <button onclick="switchTab('exchange')" id="nav-btn-exchange" class="flex-1 flex flex-col items-center gap-1 py-1 text-hamster-gold">
+                    <span class="text-xl leading-none">🏦</span>
+                    <span class="text-[9px] font-bold">Exchange</span>
                 </button>
-                <button onclick="switchScreen('mine')" id="nav-btn-mine" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200">
-                    <span class="text-lg">⛏️</span>
-                    <span class="text-[9px] font-bold">Шахта (Mine)</span>
+                <button onclick="switchTab('mine')" id="nav-btn-mine" class="flex-1 flex flex-col items-center gap-1 py-1 text-hamster-textMuted hover:text-white">
+                    <span class="text-xl leading-none">⛏️</span>
+                    <span class="text-[9px] font-bold">Mine</span>
                 </button>
-                <button onclick="switchScreen('earn')" id="nav-btn-earn" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200">
-                    <span class="text-lg">💰</span>
-                    <span class="text-[9px] font-bold">Заработать</span>
+                <button onclick="switchTab('friends')" id="nav-btn-friends" class="flex-1 flex flex-col items-center gap-1 py-1 text-hamster-textMuted hover:text-white">
+                    <span class="text-xl leading-none">👥</span>
+                    <span class="text-[9px] font-bold">Friends</span>
                 </button>
-                <button onclick="switchScreen('boosts')" id="nav-btn-boosts" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200">
-                    <span class="text-lg">⚡</span>
-                    <span class="text-[9px] font-bold">Бусты</span>
+                <button onclick="switchTab('earn')" id="nav-btn-earn" class="flex-1 flex flex-col items-center gap-1 py-1 text-hamster-textMuted hover:text-white">
+                    <span class="text-xl leading-none">🪙</span>
+                    <span class="text-[9px] font-bold">Earn</span>
+                </button>
+                <button onclick="switchTab('airdrop')" id="nav-btn-airdrop" class="flex-1 flex flex-col items-center gap-1 py-1 text-hamster-textMuted hover:text-white">
+                    <span class="text-xl leading-none">🪂</span>
+                    <span class="text-[9px] font-bold">Airdrop</span>
                 </button>
             </nav>
         </footer>
 
     </div>
 
-    <!-- JavaScript логика -->
+    <!-- ОСНОВНОЙ СЦЕНАРИЙ ИГРЫ -->
     <script>
-        // Игровая база данных и состояния
-        const gameState = {
+        // --- ДАННЫЕ ИГРЫ ---
+        const game = {
             balance: 0,
             earnedPerTap: 1,
             profitPerHour: 0,
@@ -374,412 +589,590 @@
             currentEnergy: 1000,
             
             // Бусты
-            multitapLevel: 1,
-            energyLimitLevel: 1,
-            freeFullEnergyLeft: 3,
-            
-            // Задания
-            completedTasks: [],
-            lastDailyClaimDate: null,
+            multitapLvl: 1,
+            energyLvl: 1,
 
-            // Улучшения в шахте (Mine)
-            upgrades: [
-                // PR & Команда
-                { id: 1, name: 'Канал на Youtube', category: 'pr', cost: 150, pph: 15, level: 0, icon: '📺' },
-                { id: 2, name: 'SMM Менеджер', category: 'pr', cost: 500, pph: 45, level: 0, icon: '✍️' },
-                { id: 3, name: 'QA Отдел тестирования', category: 'pr', cost: 1200, pph: 110, level: 0, icon: '🐞' },
-                { id: 4, name: 'Инфлюенсер-СЕО', category: 'pr', cost: 5000, pph: 520, level: 0, icon: '👑' },
-                
-                // Рынки
-                { id: 5, name: 'Листинг USDT', category: 'markets', cost: 200, pph: 25, level: 0, icon: '💵' },
-                { id: 6, name: 'Маркет-мейкеры', category: 'markets', cost: 1000, pph: 120, level: 0, icon: '📊' },
-                { id: 7, name: 'Маржинальная торговля', category: 'markets', cost: 3500, pph: 390, level: 0, icon: '📈' },
-                { id: 8, name: 'Хедж-фонд хомяков', category: 'markets', cost: 12000, pph: 1400, level: 0, icon: '🏢' },
-
-                // Законы
-                { id: 9, name: 'Лицензия в ЕС', category: 'legal', cost: 1000, pph: 90, level: 0, icon: '🇪🇺' },
-                { id: 10, name: 'Борьба с фродом (KYC)', category: 'legal', cost: 4000, pph: 450, level: 0, icon: '🛡️' },
-                { id: 11, name: 'Комплаенс аудит', category: 'legal', cost: 9000, pph: 1000, level: 0, icon: '📑' }
+            // Уровни/Лиги
+            levels: [
+                { name: 'Bronze', min: 0, max: 5000 },
+                { name: 'Silver', min: 5000, max: 25000 },
+                { name: 'Gold', min: 25000, max: 100000 },
+                { name: 'Platinum', min: 100000, max: 1000000 },
+                { name: 'Diamond', min: 1000000, max: 10000000 },
+                { name: 'Lord', min: 10000000, max: Infinity }
             ],
 
-            currentCardCategory: 'pr'
+            // Комбо (QA Team, Лицензия ЕС, Веб3 Кошелек)
+            comboTarget: [3, 9, 11], // ID карточек для комбо
+            comboBought: [], // Какие уже купили сегодня
+            comboClaimed: false,
+
+            // Шифр (Слово "HAMSTER")
+            cipherActive: false,
+            cipherTargetWord: "HAMSTER",
+            cipherMorseInput: "", // Код в виде ".-"
+            cipherCompleted: false,
+            lastTapTime: 0,
+
+            // Карточки улучшений
+            upgrades: [
+                // PR & TEAM
+                { id: 1, name: 'Служба поддержки', category: 'pr', cost: 120, pph: 12, level: 0, icon: '📞' },
+                { id: 2, name: 'SMM Менеджеры', category: 'pr', cost: 350, pph: 35, level: 0, icon: '✏️' },
+                { id: 3, name: 'QA Команда', category: 'pr', cost: 900, pph: 95, level: 0, icon: '🐞' }, // Комбо-карта
+                { id: 4, name: 'Бизнес-Аналитики', category: 'pr', cost: 2500, pph: 280, level: 0, icon: '📊' },
+
+                // MARKETS
+                { id: 5, name: 'Листинг USDT', category: 'markets', cost: 200, pph: 20, level: 0, icon: '💵' },
+                { id: 6, name: 'P2P Платформа', category: 'markets', cost: 800, pph: 85, level: 0, icon: '🤝' },
+                { id: 7, name: 'Маржинальный пул', category: 'markets', cost: 4000, pph: 450, level: 0, icon: '📈' },
+                { id: 8, name: 'Фьючерсные контракты', category: 'markets', cost: 15000, pph: 1700, level: 0, icon: '📉' },
+
+                // LEGAL
+                { id: 9, name: 'Лицензия в Европе', category: 'legal', cost: 500, pph: 55, level: 0, icon: '🇪🇺' }, // Комбо-карта
+                { id: 10, name: 'Борьба с отмыванием (AML)', category: 'legal', cost: 3000, pph: 320, level: 0, icon: '🛡️' },
+                { id: 11, name: 'Web3 Юристы', category: 'legal', cost: 8500, pph: 900, level: 0, icon: '⚖️' }, // Комбо-карта
+
+                // WEB3
+                { id: 12, name: 'Смарт-Контракты', category: 'web3', cost: 1500, pph: 160, level: 0, icon: '⚙️' },
+                { id: 13, name: 'Собственный блокчейн', category: 'web3', cost: 12000, pph: 1300, level: 0, icon: '🌐' }
+            ],
+
+            activeCategory: 'pr'
         };
 
-        // Лиги СЕО хомяков
-        const tiers = [
-            { name: "Bronze", min: 0, max: 5000 },
-            { name: "Silver", min: 5000, max: 25000 },
-            { name: "Gold", min: 25000, max: 100000 },
-            { name: "Platinum", min: 100000, max: 500000 },
-            { name: "Diamond", min: 500000, max: 1500000 },
-            { name: "Grandmaster", min: 1500000, max: 5000000 },
-            { name: "Lord", min: 5000000, max: Infinity }
-        ];
-
-        // Запуск таймеров при старте
+        // Запуск при загрузке
         window.onload = function() {
-            initGame();
-            
-            // Восстановление энергии: 3 ед в секунду
-            setInterval(() => {
-                if (gameState.currentEnergy < gameState.maxEnergy) {
-                    gameState.currentEnergy = Math.min(gameState.maxEnergy, gameState.currentEnergy + 3);
-                    updateUI();
-                }
-            }, 1000);
-
-            // Начисление прибыли в час (PPH) каждые 1 секунду
-            setInterval(() => {
-                if (gameState.profitPerHour > 0) {
-                    const secondProfit = gameState.profitPerHour / 3600;
-                    gameState.balance += secondProfit;
-                    updateUI();
-                }
-            }, 1000);
-        };
-
-        function initGame() {
-            // Попробуем восстановить сессию, если бы у нас было сохранение.
-            // На данный момент всё работает в памяти.
+            initEventHandlers();
             updateUI();
             renderUpgrades();
+
+            // Восстановление энергии: +3 энергии в сек.
+            setInterval(() => {
+                if (game.currentEnergy < game.maxEnergy) {
+                    game.currentEnergy = Math.min(game.maxEnergy, game.currentEnergy + 3);
+                    updateUI();
+                }
+            }, 1000);
+
+            // Начисление пассивного дохода (PPH): каждую секунду
+            setInterval(() => {
+                if (game.profitPerHour > 0) {
+                    game.balance += (game.profitPerHour / 3600);
+                    updateUI();
+                }
+            }, 1000);
+        };
+
+        // Настройка слушателей на кнопку хомяка
+        function initEventHandlers() {
+            const hamster = document.getElementById('hamster-tap-area');
             
-            // События для хомяка (мышка + тач на мобильном)
-            const btn = document.getElementById('hamster-trigger');
-            btn.addEventListener('mousedown', handleHamsterClick);
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Защита от зума
-                handleHamsterClick(e);
+            // Отслеживание начала и конца нажатия для анализа длительности клика (Шифр)
+            let tapStartTime = 0;
+
+            hamster.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                tapStartTime = Date.now();
+                
+                // Физика клика
+                hamster.style.transform = "scale(0.92)";
+            });
+
+            hamster.addEventListener('pointerup', (e) => {
+                e.preventDefault();
+                hamster.style.transform = "scale(1)";
+                
+                const tapDuration = Date.now() - tapStartTime;
+                handleTapEvent(e, tapDuration);
             });
         }
 
-        // --- ТОСТЫ / УВЕДОМЛЕНИЯ ---
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            const toastText = document.getElementById('toast-text');
-            toastText.innerText = message;
-            
-            toast.classList.remove('opacity-0', '-translate-y-12');
-            toast.classList.add('opacity-100', 'translate-y-0');
-            
-            setTimeout(() => {
-                toast.classList.remove('opacity-100', 'translate-y-0');
-                toast.classList.add('opacity-0', '-translate-y-12');
-            }, 2500);
-        }
-
-        // --- НАВИГАЦИЯ ПО ЭКРАНАМ ---
-        function switchScreen(screenId) {
-            // Скрыть все экраны
-            document.querySelectorAll('.game-screen').forEach(scr => {
-                scr.classList.add('hidden');
-            });
-            // Показать выбранный
-            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
-
-            // Сброс и замена стилей кнопок меню
-            document.querySelectorAll('footer nav button').forEach(btn => {
-                btn.className = "flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200";
-            });
-            document.getElementById(`nav-btn-${screenId}`).className = "flex-1 flex flex-col items-center gap-1.5 py-1 text-gold-400";
-
-            if (screenId === 'mine') {
-                renderUpgrades();
-            }
-        }
-
-        // --- ТАБЫ В ШАХТЕ ---
-        function switchCardTab(category) {
-            gameState.currentCardCategory = category;
-            
-            document.querySelectorAll('#tab-btn-pr, #tab-btn-markets, #tab-btn-legal').forEach(btn => {
-                btn.className = "flex-1 py-2 text-[11px] font-bold rounded-lg text-slate-400";
-            });
-            document.getElementById(`tab-btn-${category}`).className = "flex-1 py-2 text-[11px] font-bold rounded-lg bg-slate-800 text-white";
-
-            renderUpgrades();
-        }
-
-        // --- КЛИК ПО ХОМЯКУ ---
-        function handleHamsterClick(event) {
+        // --- ЛОГИКА ТАПА И ШИФРА ---
+        function handleTapEvent(e, duration) {
             // Лимит на энергию
-            if (gameState.currentEnergy < gameState.earnedPerTap) {
+            if (game.currentEnergy < game.earnedPerTap) {
                 showToast("Недостаточно энергии!");
-                playBeep(120, 0.15); // Неудачный клик
+                playSynthBeep(150, 0.2);
                 return;
             }
 
-            // Вычитаем энергию и начисляем монеты
-            gameState.currentEnergy -= gameState.earnedPerTap;
-            gameState.balance += gameState.earnedPerTap;
+            // Вычитаем энергию и зачисляем
+            game.currentEnergy -= game.earnedPerTap;
+            game.balance += game.earnedPerTap;
 
-            playBeep(330, 0.05); // Звук тапа (сгенерирован через аудиоконтекст)
+            playSynthBeep(400, 0.05);
+            createFloatingNumber(e);
 
-            // Эффект взлетающих цифр
-            createClickParticle(event);
-            
+            // Если включен режим ввода шифра
+            if (game.cipherActive && !game.cipherCompleted) {
+                // Если клик длился больше 300мс — это DASH (-), иначе DOT (.)
+                const isDash = duration > 300;
+                const char = isDash ? "-" : ".";
+                game.cipherMorseInput += char;
+                
+                showToast(`Ввод: ${isDash ? 'Тире (—)' : 'Точка (•)'}`);
+                checkMorseInput();
+            }
+
             updateUI();
         }
 
-        function createClickParticle(event) {
-            const hamsterBtn = document.getElementById('hamster-trigger');
-            const rect = hamsterBtn.getBoundingClientRect();
-            
-            let clientX, clientY;
-            if (event.touches && event.touches[0]) {
-                clientX = event.touches[0].clientX;
-                clientY = event.touches[0].clientY;
-            } else {
-                clientX = event.clientX;
-                clientY = event.clientY;
+        // Читерская кнопка активации шифра (для пользователя / триггер на Тап 3 раза по плашке "за тап")
+        let cheatCounter = 0;
+        function triggerCipherCheat() {
+            cheatCounter++;
+            if (cheatCounter >= 3) {
+                cheatCounter = 0;
+                toggleCipherMode();
             }
-
-            // Позиционируем элемент внутри тапера
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-
-            const particle = document.createElement('span');
-            particle.className = "click-particle text-2xl font-black text-white drop-shadow-lg";
-            particle.style.left = `${x}px`;
-            particle.style.top = `${y}px`;
-            particle.innerText = `+${gameState.earnedPerTap}`;
-
-            // Позиционируем относительно кнопки
-            hamsterBtn.appendChild(particle);
-
-            // Удаляем через секунду после завершения анимации
-            setTimeout(() => {
-                particle.remove();
-            }, 800);
         }
 
-        // --- ГЕНЕРАЦИЯ И ПОКУПКА КАРТОЧЕК ---
-        function renderUpgrades() {
-            const container = document.getElementById('cards-container');
-            container.innerHTML = '';
+        function toggleCipherMode() {
+            game.cipherActive = !game.cipherActive;
+            const glow = document.getElementById('hamster-shadow-glow');
+            const indicator = document.getElementById('cipher-status-text');
 
-            const categoryCards = gameState.upgrades.filter(card => card.category === gameState.currentCardCategory);
+            if (game.cipherActive) {
+                glow.classList.replace('from-hamster-gold/15', 'from-rose-500/30');
+                indicator.innerText = "🔴 АКТИВЕН";
+                showToast("Режим секретного шифра включен!");
+                playSynthBeep(600, 0.3);
+            } else {
+                glow.classList.replace('from-rose-500/30', 'from-hamster-gold/15');
+                indicator.innerText = "⚠️ ШИФР";
+                showToast("Режим шифра выключен");
+            }
+        }
 
-            categoryCards.forEach(card => {
-                const cardEl = document.createElement('div');
-                cardEl.className = "bg-dark-900 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between hover:border-slate-700/80 transition-all";
+        // Морзе Маппер для дешифрации слова "HAMSTER"
+        const morseMap = {
+            "....": "H",
+            ".-": "A",
+            "--": "M",
+            "...": "S",
+            "-": "T",
+            ".": "E",
+            ".-.": "R"
+        };
+
+        function checkMorseInput() {
+            // Проверяем текущую накопленную последовательность
+            // Попробуем сопоставить с буквами слова HAMSTER по порядку
+            const targetChars = game.cipherTargetWord.split("");
+            const currentSolvedCount = document.getElementById('cipher-word-input').innerText.replace(/\s/g, "").replace(/_/g, "").length;
+            
+            // Если введенный код совпадает с кодом следующей нужной буквы
+            const nextChar = targetChars[currentSolvedCount];
+            // Ищем код для этой буквы
+            const targetCode = Object.keys(morseMap).find(key => morseMap[key] === nextChar);
+
+            if (game.cipherMorseInput === targetCode) {
+                // Буква введена правильно!
+                game.cipherMorseInput = ""; // сброс для следующей
                 
-                // Калькулятор повышения цены (с каждым уровнем +50%)
-                const currentCost = Math.round(card.cost * Math.pow(1.5, card.level));
-                const currentPPH = Math.round(card.pph * Math.pow(1.2, card.level));
+                // Обновляем визуальный ввод слова в модалке
+                let currentWordLayout = "";
+                for(let i=0; i<7; i++) {
+                    if (i <= currentSolvedCount) {
+                        currentWordLayout += targetChars[i] + " ";
+                    } else {
+                        currentWordLayout += "_ ";
+                    }
+                }
+                document.getElementById('cipher-word-input').innerText = currentWordLayout;
+                showToast(`Правильная буква: ${nextChar}! 🎯`);
+                playSynthBeep(880, 0.15);
 
-                cardEl.innerHTML = `
+                if (currentSolvedCount + 1 === 7) {
+                    // Разгадал всё слово!
+                    game.balance += 1000000;
+                    game.cipherCompleted = true;
+                    game.cipherActive = false;
+                    
+                    document.getElementById('cipher-status-indicator').innerText = "✅ СДЕЛАНО";
+                    document.getElementById('cipher-status-text').innerText = "ВЫПОЛНЕНО";
+                    document.getElementById('hamster-shadow-glow').classList.replace('from-rose-500/30', 'from-hamster-gold/15');
+                    
+                    showToast("ШИФР РАЗГАДАН! +1,000,000 🪙");
+                    playSynthBeep(523, 0.1);
+                    setTimeout(() => playSynthBeep(659, 0.1), 100);
+                    setTimeout(() => playSynthBeep(783, 0.2), 200);
+                }
+            } else {
+                // Если код превышает максимальный лимит символов буквы, сбрасываем для новой попытки
+                if (game.cipherMorseInput.length >= 4) {
+                    game.cipherMorseInput = "";
+                    showToast("Ошибка ввода, попробуйте еще раз!");
+                    playSynthBeep(100, 0.3);
+                }
+            }
+        }
+
+        // --- ЭФФЕКТЫ ЧИСЕЛ ПРИ КЛИКЕ ---
+        function createFloatingNumber(e) {
+            const tapArea = document.getElementById('hamster-tap-area');
+            const rect = tapArea.getBoundingClientRect();
+            
+            let clickX = rect.width / 2;
+            let clickY = rect.height / 2;
+
+            if (e.clientX && e.clientY) {
+                clickX = e.clientX - rect.left;
+                clickY = e.clientY - rect.top;
+            }
+
+            const particle = document.createElement('span');
+            particle.className = "tap-particle text-3xl font-black text-white drop-shadow-md";
+            particle.style.left = `${clickX}px`;
+            particle.style.top = `${clickY}px`;
+            particle.innerText = `+${game.earnedPerTap}`;
+
+            tapArea.appendChild(particle);
+            setTimeout(() => particle.remove(), 700);
+        }
+
+        // --- СМЕНА ВКЛАДОК ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            document.getElementById(`tab-${tabId}-content`).classList.remove('hidden');
+
+            // Кнопки навигации
+            document.querySelectorAll('footer nav button').forEach(btn => {
+                btn.className = "flex-1 flex flex-col items-center gap-1 py-1 text-hamster-textMuted hover:text-white";
+            });
+            document.getElementById(`nav-btn-${tabId}`).className = "flex-1 flex flex-col items-center gap-1 py-1 text-hamster-gold";
+        }
+
+        // --- КАТЕГОРИИ В ШАХТЕ ---
+        function switchCategory(catId) {
+            game.activeCategory = catId;
+            document.querySelectorAll('#cat-pr, #cat-markets, #cat-legal, #cat-web3').forEach(btn => {
+                btn.className = "flex-1 py-1.5 text-[10px] font-bold rounded-lg text-hamster-textMuted transition-all";
+            });
+            document.getElementById(`cat-${catId}`).className = "flex-1 py-1.5 text-[10px] font-bold rounded-lg bg-hamster-border text-white transition-all";
+            
+            renderUpgrades();
+        }
+
+        // --- ОТРИСОВКА И ПОКУПКА КАРТ ---
+        function renderUpgrades() {
+            const grid = document.getElementById('upgrades-grid');
+            grid.innerHTML = '';
+
+            const filtered = game.upgrades.filter(card => card.category === game.activeCategory);
+
+            filtered.forEach(card => {
+                const currentCost = Math.round(card.cost * Math.pow(1.6, card.level));
+                const currentPPH = Math.round(card.pph * Math.pow(1.25, card.level));
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = "bg-hamster-card border border-hamster-border/80 p-3 rounded-2xl flex flex-col justify-between hover:border-slate-700/80 transition-all";
+                
+                cardDiv.innerHTML = `
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-2xl">${card.icon}</span>
-                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">ур. ${card.level}</span>
+                            <span class="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold">ур. ${card.level}</span>
                         </div>
-                        <h4 class="text-xs font-black text-white line-clamp-1 mb-1">${card.name}</h4>
-                        <div class="flex items-center gap-1 mb-3">
-                            <span class="text-[9px] text-slate-400">PPH:</span>
-                            <span class="text-[10px] text-emerald-400 font-extrabold">+${formatNumber(currentPPH)}/ч</span>
+                        <h4 class="text-xs font-black text-white line-clamp-1">${card.name}</h4>
+                        <div class="flex items-center gap-1 mt-1 mb-3">
+                            <span class="text-[9px] text-hamster-textMuted">Прибыль/час:</span>
+                            <span class="text-[10px] text-emerald-400 font-black">+${formatCompact(currentPPH)}</span>
                         </div>
                     </div>
-                    <button onclick="buyUpgrade(${card.id})" class="w-full bg-slate-800 hover:bg-gold-500 hover:text-slate-950 active:scale-95 text-white font-bold py-2 px-1 rounded-xl text-[11px] transition-all flex items-center justify-center gap-1">
-                        <span>💰</span>
-                        <span>${formatNumber(currentCost)}</span>
+                    <button onclick="buyCard(${card.id})" class="w-full bg-slate-800 hover:bg-hamster-gold hover:text-slate-950 active:scale-95 text-white font-extrabold py-2 px-1 rounded-xl text-[10px] transition-all flex items-center justify-center gap-1">
+                        <span>🪙</span>
+                        <span>${formatCompact(currentCost)}</span>
                     </button>
                 `;
-                container.appendChild(cardEl);
+                grid.appendChild(cardDiv);
             });
         }
 
-        function buyUpgrade(id) {
-            const card = gameState.upgrades.find(c => c.id === id);
+        function buyCard(cardId) {
+            const card = game.upgrades.find(c => c.id === cardId);
             if (!card) return;
 
-            const cost = Math.round(card.cost * Math.pow(1.5, card.level));
-            const pphAdded = Math.round(card.pph * Math.pow(1.2, card.level));
+            const cost = Math.round(card.cost * Math.pow(1.6, card.level));
+            const pphAdded = Math.round(card.pph * Math.pow(1.25, card.level));
 
-            if (gameState.balance < cost) {
-                showToast("Недостаточно монет для расширения бизнеса!");
-                playBeep(120, 0.2); // Ошибка
+            if (game.balance < cost) {
+                showToast("Недостаточно монет для покупки!");
+                playSynthBeep(180, 0.2);
                 return;
             }
 
-            gameState.balance -= cost;
-            gameState.profitPerHour += pphAdded;
+            game.balance -= cost;
+            game.profitPerHour += pphAdded;
             card.level += 1;
 
-            playBeep(523.25, 0.1); // Радостный клик
-            setTimeout(() => playBeep(659.25, 0.1), 80);
+            // Логика Дейли Комбо
+            if (game.comboTarget.includes(cardId) && !game.comboBought.includes(cardId)) {
+                game.comboBought.push(cardId);
+                updateComboUI();
+                showToast("Карта Combo открыта! 🎉");
+            }
 
-            showToast(`Успешно куплено: "${card.name}"!`);
+            playSynthBeep(523, 0.08);
+            setTimeout(() => playSynthBeep(659, 0.08), 80);
+
             renderUpgrades();
             updateUI();
         }
 
-        // --- КЛИКАБЕЛЬНЫЕ БУСТЫ ---
+        function updateComboUI() {
+            // Обновляем ячейки комбо в Exchange
+            for(let i = 1; i <= 3; i++) {
+                const slot = document.getElementById(`combo-slot-${i}`);
+                const mineSlot = document.getElementById(`mine-combo-${i}`);
+                
+                if (game.comboBought[i-1]) {
+                    const card = game.upgrades.find(c => c.id === game.comboBought[i-1]);
+                    slot.innerText = card.icon;
+                    mineSlot.innerText = `${card.icon} Открыто`;
+                    mineSlot.classList.replace('text-hamster-textMuted', 'text-hamster-gold');
+                }
+            }
+
+            // Награда за комбо (все 3 открыты)
+            if (game.comboBought.length === 3 && !game.comboClaimed) {
+                game.comboClaimed = true;
+                game.balance += 5000000;
+                document.getElementById('combo-bonus-status').innerText = "Получено ✅";
+                showToast("ЕЖЕДНЕВНОЕ КОМБО СОБРАНО! +5,000,000 🪙");
+                playSynthBeep(587, 0.1);
+                setTimeout(() => playSynthBeep(783, 0.15), 100);
+            }
+        }
+
+        // --- БУСТЫ ---
         function buyMultitap() {
-            const cost = 2000 * Math.pow(2.2, gameState.multitapLevel - 1);
-            if (gameState.balance < cost) {
+            const cost = 2000 * Math.pow(2.2, game.multitapLvl - 1);
+            if (game.balance < cost) {
                 showToast("Недостаточно монет!");
-                playBeep(120, 0.2);
+                playSynthBeep(150, 0.2);
                 return;
             }
 
-            gameState.balance -= cost;
-            gameState.multitapLevel += 1;
-            gameState.earnedPerTap = gameState.multitapLevel;
-            
-            playBeep(440, 0.08);
-            setTimeout(() => playBeep(554, 0.08), 80);
-            
-            showToast(`Клик прокачан до Ур. ${gameState.multitapLevel}!`);
+            game.balance -= cost;
+            game.multitapLvl++;
+            game.earnedPerTap = game.multitapLvl;
+            showToast("Сила тапа успешно увеличена!");
             updateUI();
         }
 
         function buyEnergyLimit() {
-            const cost = 3000 * Math.pow(2, gameState.energyLimitLevel - 1);
-            if (gameState.balance < cost) {
+            const cost = 3000 * Math.pow(2, game.energyLvl - 1);
+            if (game.balance < cost) {
                 showToast("Недостаточно монет!");
-                playBeep(120, 0.2);
+                playSynthBeep(150, 0.2);
                 return;
             }
 
-            gameState.balance -= cost;
-            gameState.energyLimitLevel += 1;
-            gameState.maxEnergy = 1000 + (gameState.energyLimitLevel - 1) * 500;
-            gameState.currentEnergy = gameState.maxEnergy;
-
-            playBeep(440, 0.08);
-            setTimeout(() => playBeep(659, 0.08), 80);
-
-            showToast(`Энергия увеличена до ${gameState.maxEnergy}!`);
+            game.balance -= cost;
+            game.energyLvl++;
+            game.maxEnergy = 1000 + (game.energyLvl - 1) * 500;
+            game.currentEnergy = game.maxEnergy;
+            showToast("Лимит энергии расширен!");
             updateUI();
         }
 
-        function applyFullEnergyBoost() {
-            if (gameState.freeFullEnergyLeft <= 0) {
-                showToast("Все бесплатные бусты на сегодня использованы!");
-                return;
-            }
-
-            gameState.currentEnergy = gameState.maxEnergy;
-            gameState.freeFullEnergyLeft -= 1;
-            
-            playBeep(587.33, 0.15);
-            showToast("Энергия полностью восстановлена!");
-            updateUI();
-        }
-
-        // --- СИСТЕМА ЗАДАНИЙ И НАГРАД (EARN) ---
+        // --- EARN & AIRDROP ЗАДАНИЯ ---
         function claimDailyReward() {
-            const today = new Date().toDateString();
-            if (gameState.lastDailyClaimDate === today) {
-                showToast("Награда уже получена сегодня!");
-                return;
-            }
-
-            gameState.balance += 5000;
-            gameState.lastDailyClaimDate = today;
-            
-            playBeep(523.25, 0.1);
-            setTimeout(() => playBeep(659.25, 0.1), 80);
-            setTimeout(() => playBeep(783.99, 0.15), 160);
-
-            showToast("+5,000 монет зачислено!");
+            game.balance += 6600;
+            const btn = document.getElementById('claim-daily-btn');
+            btn.className = "bg-emerald-500/20 text-emerald-400 text-[10px] font-black py-1.5 px-3.5 rounded-lg pointer-events-none";
+            btn.innerText = "ПОЛУЧЕНО ✅";
+            document.getElementById('daily-reward-sub').innerText = "Приходите завтра за бонусом!";
+            showToast("Награда +6,600 монет зачислена!");
             updateUI();
         }
 
-        function completeTask(id, reward) {
-            if (gameState.completedTasks.includes(id)) {
-                showToast("Вы уже выполнили это задание!");
-                return;
-            }
-
-            gameState.balance += reward;
-            gameState.completedTasks.push(id);
-            
-            // Фиксация в UI
-            const btn = document.getElementById(`task-btn-${id}`);
-            btn.className = "bg-emerald-500/20 text-emerald-400 text-xs font-bold py-2 px-4 rounded-xl pointer-events-none";
-            btn.innerText = "Выполнено ✅";
-
-            playBeep(523.25, 0.1);
-            setTimeout(() => playBeep(659.25, 0.15), 100);
-
-            showToast(`Задание выполнено! +${formatNumber(reward)} монет`);
+        function completeSocialTask(id, reward) {
+            game.balance += reward;
+            const btn = document.getElementById(`social-btn-${id}`);
+            btn.className = "bg-emerald-500/20 text-emerald-400 text-[10px] font-bold py-1.5 px-3 rounded-lg pointer-events-none";
+            btn.innerText = "ГОТОВО ✅";
+            showToast(`Квест пройден! +${formatCompact(reward)} монет`);
             updateUI();
         }
 
-        // --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
-        function updateUI() {
-            // Округление баланса для красивого вывода
-            const roundedBalance = Math.floor(gameState.balance);
-            document.getElementById('main-balance').innerText = formatNumber(roundedBalance);
+        function connectTonWallet() {
+            const btn = document.getElementById('wallet-connect-btn');
+            btn.innerText = "ПОДКЛЮЧЕНИЕ...";
+            playSynthBeep(440, 0.1);
             
-            // Расчет лиги / ранга
-            const currentTier = tiers.find(t => roundedBalance >= t.min && roundedBalance < t.max) || tiers[0];
-            const tierIndex = tiers.indexOf(currentTier) + 1;
-            document.getElementById('user-tier').innerText = `${currentTier.name} (${tierIndex}/${tiers.length})`;
+            setTimeout(() => {
+                btn.className = "bg-emerald-500 text-white text-[10px] font-black py-2 px-4 rounded-xl pointer-events-none";
+                btn.innerText = "UQAz...9B7x ✅";
+                document.getElementById('wallet-status').innerText = "Кошелек TON активен";
+                showToast("Кошелек успешно подключен к Hamster WebApp!");
+                playSynthBeep(523, 0.1);
+                setTimeout(() => playSynthBeep(659, 0.1), 100);
+            }, 1200);
+        }
+
+        function copyInviteLink() {
+            const temp = document.createElement('textarea');
+            temp.value = "https://t.me/hamster_kombat_bot/start?startapp=kentId10023456";
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast("Инвайт-ссылка скопирована!");
+        }
+
+        // --- МИНИ ИГРА (ИНТЕРАКТИВ) ---
+        let minigameTimer = null;
+        function startMiniGame() {
+            const key = document.getElementById('minigame-key');
+            key.style.left = '16px'; // сброс
+            let leftVal = 16;
             
-            // Метрики верхней панели
-            document.getElementById('stat-earn-per-tap').innerText = `+${gameState.earnedPerTap}`;
-            document.getElementById('stat-profit-per-hour').innerText = `+${formatNumber(gameState.profitPerHour)}`;
+            showToast("Удерживайте / нажимайте, чтобы двигать ключ!");
             
-            // Калькуляция следующего уровня
-            if (currentTier.max !== Infinity) {
-                document.getElementById('stat-next-level').innerText = formatNumber(currentTier.max);
+            // Простейшая механика прохода препятствия кликом
+            key.onclick = () => {
+                leftVal += 15;
+                key.style.left = `${leftVal}px`;
+                playSynthBeep(400, 0.05);
+
+                if (leftVal >= 260) {
+                    clearInterval(minigameTimer);
+                    key.onclick = null;
+                    showToast("Победа! Вы открыли замок и получили ключ! 🔑");
+                    game.balance += 50000;
+                    updateUI();
+                    closeMiniGame();
+                }
+            };
+
+            let timeLeft = 30;
+            minigameTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('minigame-timer').innerText = `Осталось: ${timeLeft}с`;
+                if (timeLeft <= 0) {
+                    clearInterval(minigameTimer);
+                    key.onclick = null;
+                    showToast("Время вышло! Попробуйте снова");
+                }
+            }, 1000);
+        }
+
+        // --- МОДАЛКИ (ОТКРЫТЬ/ЗАКРЫТЬ) ---
+        function openCipherModal() { toggleModal('cipher-modal', true); }
+        function closeCipherModal() { toggleModal('cipher-modal', false); }
+        function openMiniGame() { toggleModal('minigame-modal', true); }
+        function closeMiniGame() { toggleModal('minigame-modal', false); clearInterval(minigameTimer); }
+        function openExchangeSelector() { toggleModal('exchange-modal', true); }
+        function closeExchangeSelector() { toggleModal('exchange-modal', false); }
+
+        function selectExchange(name, icon) {
+            document.getElementById('current-exchange-name').innerText = name;
+            document.getElementById('header-exchange-logo').innerText = icon;
+            showToast(`Вы перешли на биржу ${name}!`);
+            closeExchangeSelector();
+        }
+
+        function toggleModal(id, show) {
+            const el = document.getElementById(id);
+            if(show) {
+                el.classList.remove('pointer-events-none', 'opacity-0');
             } else {
-                document.getElementById('stat-next-level').innerText = "MAX";
-            }
-
-            // Шкала энергии
-            document.getElementById('energy-text').innerText = `${Math.floor(gameState.currentEnergy)} / ${gameState.maxEnergy}`;
-            const energyPercent = (gameState.currentEnergy / gameState.maxEnergy) * 100;
-            document.getElementById('energy-bar').style.width = `${energyPercent}%`;
-
-            // Тексты в разделе "Бусты"
-            const nextMultitapCost = 2000 * Math.pow(2.2, gameState.multitapLevel - 1);
-            document.getElementById('multitap-info').innerText = `Ур. ${gameState.multitapLevel} • Стоимость: ${formatNumber(Math.round(nextMultitapCost))}`;
-            
-            const nextEnergyLimitCost = 3000 * Math.pow(2, gameState.energyLimitLevel - 1);
-            document.getElementById('energylimit-info').innerText = `Ур. ${gameState.energyLimitLevel} • Стоимость: ${formatNumber(Math.round(nextEnergyLimitCost))}`;
-
-            document.getElementById('full-energy-count').innerText = `Доступно: ${gameState.freeFullEnergyLeft} / 3`;
-            if (gameState.freeFullEnergyLeft <= 0) {
-                document.getElementById('full-energy-btn').className = "bg-slate-900 text-slate-600 border border-slate-800 text-xs font-bold py-2 px-4 rounded-xl cursor-not-allowed";
+                el.classList.add('pointer-events-none', 'opacity-0');
             }
         }
 
-        // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-        function formatNumber(num) {
-            if (num >= 1000000) {
-                return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
+        // --- ТОСТЕР ---
+        function showToast(message) {
+            const toast = document.getElementById('app-toast');
+            document.getElementById('toast-message-text').innerText = message;
+            toast.classList.remove('opacity-0', '-translate-y-12');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-12');
+            }, 2000);
+        }
+
+        // --- РАСЧЕТ И ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+        function updateUI() {
+            const roundedBalance = Math.floor(game.balance);
+            document.getElementById('main-balance').innerText = formatCompact(roundedBalance);
+            
+            // Расчет лиги
+            const activeLevel = game.levels.find(lvl => roundedBalance >= lvl.min && roundedBalance < lvl.max) || game.levels[0];
+            const lvlIndex = game.levels.indexOf(activeLevel) + 1;
+            document.getElementById('level-title').innerText = activeLevel.name;
+            document.getElementById('level-indicator').innerText = `Уровень ${lvlIndex}/${game.levels.length}`;
+
+            // Прогресс бар
+            if (activeLevel.max !== Infinity) {
+                const required = activeLevel.max - activeLevel.min;
+                const earned = roundedBalance - activeLevel.min;
+                const percent = Math.min(100, Math.round((earned / required) * 100));
+                
+                document.getElementById('level-percent').innerText = `${percent}%`;
+                document.getElementById('level-progress-bar').style.width = `${percent}%`;
+                document.getElementById('stat-to-up').innerText = formatCompact(activeLevel.max);
+            } else {
+                document.getElementById('level-percent').innerText = `100%`;
+                document.getElementById('level-progress-bar').style.width = `100%`;
+                document.getElementById('stat-to-up').innerText = `MAX`;
             }
-            if (num >= 1000) {
-                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+
+            // Метрики
+            document.getElementById('stat-per-tap').innerText = `+${game.earnedPerTap}`;
+            document.getElementById('stat-pph').innerText = `+${formatCompact(game.profitPerHour)}`;
+            document.getElementById('energy-counter').innerText = `${Math.floor(game.currentEnergy)} / ${game.maxEnergy}`;
+
+            // Вкладка бустов тексты цен
+            const multitapCost = Math.round(2000 * Math.pow(2.2, game.multitapLvl - 1));
+            document.getElementById('multitap-cost-text').innerText = `Уровень ${game.multitapLvl} • ${formatCompact(multitapCost)} монет`;
+            
+            const energyCost = Math.round(3000 * Math.pow(2, game.energyLvl - 1));
+            document.getElementById('energylimit-cost-text').innerText = `Уровень ${game.energyLvl} • ${formatCompact(energyCost)} монет`;
+
+            // Условие для Airdrop верификации 15 уровня карточки
+            const hasLvl15Card = game.upgrades.some(u => u.level >= 15);
+            const airdropLvlEl = document.getElementById('airdrop-task-level');
+            if (hasLvl15Card) {
+                airdropLvlEl.className = "text-emerald-400 text-xs";
+                airdropLvlEl.innerText = "✅ Готово";
+            } else {
+                airdropLvlEl.className = "text-rose-400 text-xs";
+                airdropLvlEl.innerText = "❌ Нет";
             }
+        }
+
+        // --- УТИЛИТЫ ФОРМАТИРОВАНИЯ ---
+        function formatCompact(num) {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(2).replace(/\.00$/, '') + 'B';
+            if (num >= 1000000) return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(2).replace(/\.00$/, '') + 'K';
             return num.toString();
         }
 
-        // Синтез звуков (клики, монетки) через Web Audio API
-        function playBeep(freq, duration) {
+        // Web Audio API Синтезатор (для ретро-кликов и наград)
+        function playSynthBeep(freq, duration) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
 
-                oscillator.type = 'triangle'; // Более мягкий ретро-звук
-                oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                
-                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + duration);
 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + duration);
-            } catch (e) {
-                // Браузер может временно заблокировать аудио до первого взаимодействия.
-            }
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
         }
     </script>
 </body>
