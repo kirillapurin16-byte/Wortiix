@@ -1,551 +1,962 @@
+
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="h-full bg-slate-950 text-slate-100">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CS Telegram Edition</title>
-    <!-- Подключаем SDK Телеграма -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Центр Продуктивности</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js для интерактивных графиков -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --bg-color: #12141c;
-            --panel-color: #1b1e28;
-            --cs-orange: #de9b35;
-            --text-color: #e2e8f0;
-            
-            /* Раритетность скинов */
-            --rarity-covert: #eb4b4b; /* Тайное */
-            --rarity-classified: #d32ce6; /* Засекреченное */
-            --rarity-milspec: #4b69ff; /* Армейское */
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            user-select: none;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        /* --- ЗАСТАВКА В СТИЛЕ CS --- */
-        #intro-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), 
-                        url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000') no-repeat center center;
-            background-size: cover;
-            z-index: 999;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 50px 20px;
-            transition: opacity 0.8s ease;
-        }
-
-        .cs-logo {
-            text-align: center;
-            margin-top: 20%;
-        }
-
-        .cs-logo h1 {
-            font-size: 3.5rem;
-            font-weight: 900;
-            letter-spacing: 5px;
-            color: #fff;
-            text-shadow: 0 0 20px rgba(222, 155, 53, 0.6);
-        }
-
-        .cs-logo span {
-            color: var(--cs-orange);
-        }
-
-        .loading-box {
-            width: 80%;
-            max-width: 300px;
-            text-align: center;
-        }
-
-        .loading-text {
-            font-size: 0.9rem;
-            color: #888;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .progress-bar {
-            width: 100%;
+        /* Стилизация скроллбара */
+        ::-webkit-scrollbar {
+            width: 6px;
             height: 6px;
-            background-color: rgba(255,255,255,0.1);
-            border-radius: 3px;
-            overflow: hidden;
         }
-
-        .progress-fill {
-            width: 0%;
-            height: 100%;
-            background-color: var(--cs-orange);
-            box-shadow: 0 0 10px var(--cs-orange);
-            transition: width 0.1s linear;
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
         }
-
-        /* --- ОСНОВНАЯ ИГРА --- */
-        #main-game {
-            display: none;
-            height: 100vh;
-            flex-direction: column;
-        }
-
-        header {
-            background-color: var(--panel-color);
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #2c313f;
-        }
-
-        .user-info h3 {
-            color: var(--cs-orange);
-            font-size: 1.1rem;
-        }
-
-        .balance {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #4caf50;
-        }
-
-        /* Вкладки */
-        .nav-tabs {
-            display: flex;
-            background-color: var(--panel-color);
-            border-bottom: 1px solid #2c313f;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 15px 0;
-            background: none;
-            border: none;
-            color: #888;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-        }
-
-        .tab-btn.active {
-            color: var(--cs-orange);
-            border-bottom-color: var(--cs-orange);
-            background-color: rgba(222, 155, 53, 0.05);
-        }
-
-        .tab-content {
-            flex: 1;
-            display: none;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Кликер / Кейсы */
-        .clicker-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            gap: 30px;
-        }
-
-        .case-target {
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(222,155,53,0.2) 0%, rgba(0,0,0,0) 70%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.1s ease;
-        }
-
-        .case-target:active {
-            transform: scale(0.95);
-        }
-
-        .case-target img {
-            width: 150px;
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
-        }
-
-        .btn-main {
-            background-color: var(--cs-orange);
-            color: #000;
-            border: none;
-            padding: 12px 30px;
-            font-weight: bold;
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
             border-radius: 4px;
-            text-transform: uppercase;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(222, 155, 53, 0.3);
         }
-
-        /* Сетка инвентаря */
-        .inventory-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .skin-card {
-            background-color: var(--panel-color);
-            border-radius: 6px;
-            padding: 10px;
-            text-align: center;
-            border-bottom: 4px solid var(--rarity-milspec);
-            position: relative;
-        }
-
-        .skin-card.covert { border-bottom-color: var(--rarity-covert); }
-        .skin-card.classified { border-bottom-color: var(--rarity-classified); }
-        .skin-card.milspec { border-bottom-color: var(--rarity-milspec); }
-
-        .skin-card img {
-            width: 80%;
-            margin: 10px 0;
-        }
-
-        .skin-name {
-            font-size: 0.85rem;
-            font-weight: bold;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .skin-price {
-            font-size: 0.8rem;
-            color: #4caf50;
-            margin-top: 5px;
-        }
-
-        /* Трейд Зона */
-        .trade-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .trade-slots {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            min-height: 100px;
-            background: rgba(0,0,0,0.2);
-            border: 2px dashed #333;
-            border-radius: 6px;
-            padding: 10px;
-            align-items: center;
-            text-align: center;
-        }
-
-        .trade-info-text {
-            font-size: 0.85rem;
-            color: #aaa;
-            text-align: center;
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
         }
     </style>
 </head>
-<body>
+<body class="h-full flex flex-col md:flex-row overflow-hidden font-sans">
 
-    <!-- ЗАСТАВКА CS -->
-    <div id="intro-screen">
-        <div class="cs-logo">
-            <h1>CS<span>:GO</span></h1>
-            <p style="color: #aaa; letter-spacing: 2px; font-size: 0.8rem;">TELEGRAM MINI APP</p>
-        </div>
-        <div class="loading-box">
-            <div class="loading-text" id="loader-status">Подключение к серверам...</div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="loader-fill"></div>
+    <!-- Боковая панель навигации (для десктопов) -->
+    <aside class="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 p-6 gap-8">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-brand-500/10 text-brand-500 rounded-xl">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-none">ФокусХаб</h1>
+                <span class="text-xs text-slate-400">Твой личный ассистент</span>
             </div>
         </div>
-    </div>
 
-    <!-- ОСНОВНОЙ ИНТЕРФЕЙС ИГРЫ -->
-    <div id="main-game">
-        <header>
-            <div class="user-info">
-                <h3 id="username">Игрок</h3>
+        <nav class="flex flex-col gap-2">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-500 text-white font-medium transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
+                Панель управления
+            </button>
+            <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Задачи
+            </button>
+            <button onclick="switchTab('pomodoro')" id="nav-pomodoro" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Помидор таймер
+            </button>
+            <button onclick="switchTab('notes')" id="nav-notes" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Заметки
+            </button>
+        </nav>
+
+        <div class="mt-auto bg-slate-800/40 border border-slate-800 p-4 rounded-2xl">
+            <h4 class="font-semibold text-sm mb-1">Ваш статус сегодня</h4>
+            <p class="text-xs text-slate-400 mb-3" id="sidebar-progress-text">Выполнено задач: 0%</p>
+            <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                <div id="sidebar-progress-bar" class="bg-brand-500 h-full transition-all duration-300" style="width: 0%"></div>
             </div>
-            <div class="balance">$<span id="balance-val">0</span></div>
-        </header>
+        </div>
+    </aside>
 
-        <!-- Навигация -->
-        <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchTab('cases')">Кейсы</button>
-            <button class="tab-btn" onclick="switchTab('inventory')">Инвентарь (<span id="inv-count">0</span>)</button>
-            <button class="tab-btn" onclick="switchTab('trade')">Контракт</button>
+    <!-- Мобильная шапка -->
+    <header class="md:hidden flex items-center justify-between bg-slate-900 border-b border-slate-800 px-6 py-4">
+        <div class="flex items-center gap-2">
+            <div class="p-1.5 bg-brand-500/10 text-brand-500 rounded-lg">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <span class="font-bold">ФокусХаб</span>
+        </div>
+        <div id="mobile-stats" class="text-xs bg-brand-500/10 text-brand-400 px-2.5 py-1 rounded-full font-medium">
+            0% выполнено
+        </div>
+    </header>
+
+    <!-- Основной контейнер содержимого -->
+    <main class="flex-1 flex flex-col overflow-y-auto pb-20 md:pb-0 h-full relative bg-slate-950">
+        
+        <!-- Уведомления (Кастомный модал/Toast) -->
+        <div id="toast" class="fixed top-4 right-4 z-50 transform translate-y-[-100px] opacity-0 bg-slate-900 border border-brand-500/30 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 pointer-events-none">
+            <div class="p-1 bg-brand-500/20 text-brand-400 rounded-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <span id="toast-message" class="text-sm font-medium">Это системное сообщение</span>
         </div>
 
-        <!-- ВКЛАДКА КЕЙСОВ -->
-        <div id="tab-cases" class="tab-content active">
-            <div class="clicker-container">
-                <h2 style="font-size: 1.2rem; text-align: center;">Жми на кейс, чтобы фармить баланс!</h2>
-                <div class="case-target" onclick="clickCase()">
-                    <!-- Картинка кейса CS2 -->
-                    <img src="https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXU5A1PIYQNqhpOSV-fRPas6nGvXFBoLd96uqScfDhp0vGfcm8RvN_mxtSOx6SgMOmFwGgBuZ0gi7vE89Sj3gXnr0RtYm_1cofBcVM8ZAnQ8gK2kO7v0JS0tJSfznE27HI8pSGKIonN7g" alt="CS Case">
+        <!-- ВКЛАДКА 1: ПАНЕЛЬ УПРАВЛЕНИЯ -->
+        <section id="tab-dashboard" class="tab-content p-6 md:p-10 max-w-6xl mx-auto w-full flex flex-col gap-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Добро пожаловать в рабочую зону!</h2>
+                    <p class="text-slate-400 text-sm md:text-base mt-1">Отслеживайте свои фокус-сессии и управляйте ежедневными делами.</p>
                 </div>
-                <button class="btn-main" onclick="openCase()">Открыть Кейс ($100)</button>
-            </div>
-        </div>
-
-        <!-- ВКЛАДКА ИНВЕНТАРЯ -->
-        <div id="tab-inventory" class="tab-content">
-            <div class="inventory-grid" id="inventory-list">
-                <!-- Сюда падают скины -->
-            </div>
-        </div>
-
-        <!-- ВКЛАДКА ТРЕЙДА (КОНТРАКТЫ) -->
-        <div id="tab-trade" class="tab-content">
-            <div class="trade-container">
-                <h3 style="text-align: center;">Контракт обмена (Трейд с Ботом)</h3>
-                <p class="trade-info-text">Положите 3 любых скина, чтобы выменять у бота 1 случайный скин уровнем ВЫШЕ!</p>
-                
-                <div class="trade-slots" id="trade-slots-area">
-                    <!-- Выбранные для трейда скины -->
-                     <div style="color: #555; grid-column: span 3;">Выберите скины из инвентаря ниже</div>
+                <div id="current-date" class="text-sm text-slate-400 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl self-start md:self-auto">
+                    Пн, 18 мая
                 </div>
+            </div>
 
-                <button class="btn-main" style="width: 100%;" onclick="executeTrade()">Запустить контракт</button>
+            <!-- Сетка статистики -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
+                    <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-400 font-medium">Всего задач</span>
+                        <span id="stat-total-tasks" class="text-2xl font-bold">0</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
+                    <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-400 font-medium">Выполнено</span>
+                        <span id="stat-completed-tasks" class="text-2xl font-bold text-emerald-400">0</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
+                    <div class="p-3 bg-rose-500/10 text-rose-400 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-400 font-medium">Время фокусировки</span>
+                        <span id="stat-focus-time" class="text-2xl font-bold">0 м</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
+                    <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-400 font-medium">Сохранено заметок</span>
+                        <span id="stat-total-notes" class="text-2xl font-bold">0</span>
+                    </div>
+                </div>
+            </div>
 
-                <h4 style="margin-top: 10px;">Доступно для обмена:</h4>
-                <div class="inventory-grid" id="trade-available-list"></div>
+            <!-- Аналитика и график -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Главный график -->
+                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-base">Активность за неделю</h3>
+                        <span class="text-xs text-slate-400">Помидоры за 7 дней</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+                <!-- Быстрый таймер и мотивация -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-base mb-2">Мини-Помидор</h3>
+                        <p class="text-xs text-slate-400 mb-4">Начните быструю сессию фокусировки прямо отсюда.</p>
+                        
+                        <div class="flex items-center justify-center py-6">
+                            <span id="dash-timer-display" class="text-4xl font-extrabold font-mono tracking-widest text-brand-500">25:00</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="switchTab('pomodoro')" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium py-2.5 rounded-xl text-sm transition-colors text-center">
+                            Перейти к таймеру
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 2: ТРЕКЕР ЗАДАЧ -->
+        <section id="tab-tasks" class="tab-content hidden p-6 md:p-10 max-w-4xl mx-auto w-full flex flex-col gap-6">
+            <div>
+                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Ваш список задач</h2>
+                <p class="text-slate-400 text-sm mt-1">Добавляйте, структурируйте и завершайте запланированные дела.</p>
+            </div>
+
+            <!-- Панель ввода задач -->
+            <form onsubmit="handleAddTask(event)" class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row gap-3">
+                <input id="task-input" type="text" placeholder="Что нужно сделать сегодня?" required class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100 placeholder-slate-500" />
+                <div class="flex gap-2">
+                    <select id="task-category" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-300">
+                        <option value="Работа">Работа</option>
+                        <option value="Учеба">Учеба</option>
+                        <option value="Личное">Личное</option>
+                        <option value="Спорт">Спорт</option>
+                    </select>
+                    <button type="submit" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-medium px-5 py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>Создать</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Фильтры задач -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 overflow-x-auto whitespace-nowrap">
+                <div class="flex gap-1.5" id="task-filters">
+                    <button onclick="filterTasks('all')" id="filter-all" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-500/15 text-brand-400">Все</button>
+                    <button onclick="filterTasks('active')" id="filter-active" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/40">В процессе</button>
+                    <button onclick="filterTasks('completed')" id="filter-completed" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/40">Выполненные</button>
+                </div>
+                <button onclick="clearCompletedTasks()" class="text-xs text-rose-400 hover:text-rose-300 transition-colors font-medium">Удалить выполненные</button>
+            </div>
+
+            <!-- Список задач -->
+            <div id="tasks-list" class="flex flex-col gap-3 min-h-[300px]">
+                <!-- Задачи генерируются динамически -->
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 3: ПОМИДОР ТАЙМЕР -->
+        <section id="tab-pomodoro" class="tab-content hidden p-6 md:p-10 max-w-4xl mx-auto w-full flex flex-col items-center justify-center gap-8 min-h-[80vh]">
+            <div class="text-center">
+                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Техника фокусировки Pomodoro</h2>
+                <p class="text-slate-400 text-sm mt-1">25 минут интенсивной работы, затем короткий восстанавливающий перерыв.</p>
+            </div>
+
+            <!-- Опции таймера -->
+            <div class="flex items-center justify-center gap-2 bg-slate-900/60 p-1.5 border border-slate-800 rounded-2xl">
+                <button onclick="setTimerType('focus')" id="type-focus" class="px-4 py-2 text-xs font-bold rounded-xl bg-brand-500 text-white transition-all">
+                    Фокус (25м)
+                </button>
+                <button onclick="setTimerType('short')" id="type-short" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-slate-100 transition-all">
+                    Короткий перерыв (5м)
+                </button>
+                <button onclick="setTimerType('long')" id="type-long" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-slate-100 transition-all">
+                    Длинный перерыв (15м)
+                </button>
+            </div>
+
+            <!-- Круговой визуализатор времени -->
+            <div class="relative w-72 h-72 md:w-80 md:h-80 flex items-center justify-center">
+                <!-- Круговой индикатор на SVG -->
+                <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" class="stroke-slate-800" stroke-width="4" fill="transparent"/>
+                    <circle id="timer-progress-ring" cx="50" cy="50" r="45" class="stroke-brand-500 transition-all duration-300" stroke-width="4" stroke-linecap="round" fill="transparent" stroke-dasharray="282.7" stroke-dashoffset="0"/>
+                </svg>
+
+                <div class="text-center z-10">
+                    <span id="timer-display" class="text-6xl md:text-7xl font-extrabold font-mono tracking-widest block text-white">25:00</span>
+                    <span id="timer-status-label" class="text-xs text-slate-400 uppercase tracking-widest font-bold mt-2 block">Готов к работе</span>
+                </div>
+            </div>
+
+            <!-- Контроллер таймера -->
+            <div class="flex items-center gap-4">
+                <button onclick="resetTimer()" class="p-4 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-2xl text-slate-300 hover:text-white transition-all active:scale-95" title="Сбросить">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/></svg>
+                </button>
+                <button onclick="toggleTimer()" id="play-pause-btn" class="px-10 py-4 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-extrabold rounded-2xl shadow-xl shadow-brand-500/10 transition-all flex items-center gap-3">
+                    <svg id="play-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <svg id="pause-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    <span id="btn-timer-text">Запустить</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 4: ЗАМЕТКИ -->
+        <section id="tab-notes" class="tab-content hidden p-6 md:p-10 max-w-5xl mx-auto w-full flex flex-col gap-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Ваш блокнот</h2>
+                    <p class="text-slate-400 text-sm mt-1">Записывайте мысли, идеи, важные инсайты и сохраняйте их здесь.</p>
+                </div>
+                <button onclick="openCreateNoteModal()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-medium px-5 py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 self-start sm:self-auto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>Новая заметка</span>
+                </button>
+            </div>
+
+            <!-- Поиск по заметкам -->
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </span>
+                <input id="note-search" type="text" oninput="searchNotes()" placeholder="Поиск по названию или тексту заметки..." class="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100 placeholder-slate-500" />
+            </div>
+
+            <!-- Сетка заметок -->
+            <div id="notes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[250px]">
+                <!-- Заметки генерируются динамически -->
+            </div>
+        </section>
+
+        <!-- Модалка создания/редактирования заметки -->
+        <div id="note-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="note-modal-card">
+                <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+                    <h3 id="note-modal-title" class="font-bold text-lg">Добавить новую заметку</h3>
+                    <button onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form onsubmit="handleSaveNote(event)" class="p-6 flex flex-col gap-4">
+                    <input type="hidden" id="modal-note-id">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Заголовок</label>
+                        <input id="modal-note-title" type="text" required placeholder="Введите заголовок заметки..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Текст заметки</label>
+                        <textarea id="modal-note-content" required rows="6" placeholder="Начните писать свои потрясающие идеи..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100 resize-none"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-2">
+                        <button type="button" onclick="closeNoteModal()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-sm font-semibold transition-colors">Отмена</button>
+                        <button type="submit" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition-colors">Сохранить</button>
+                    </div>
+                </form>
             </div>
         </div>
-    </div>
 
+    </main>
+
+    <!-- Мобильная нижняя навигация -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 py-2.5 px-6 flex justify-between items-center z-40">
+        <button onclick="switchTab('dashboard')" id="mob-nav-dashboard" class="flex flex-col items-center gap-1 text-brand-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
+            <span class="text-[10px] font-semibold">Главная</span>
+        </button>
+        <button onclick="switchTab('tasks')" id="mob-nav-tasks" class="flex flex-col items-center gap-1 text-slate-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <span class="text-[10px] font-semibold">Задачи</span>
+        </button>
+        <button onclick="switchTab('pomodoro')" id="mob-nav-pomodoro" class="flex flex-col items-center gap-1 text-slate-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-[10px] font-semibold">Таймер</span>
+        </button>
+        <button onclick="switchTab('notes')" id="mob-nav-notes" class="flex flex-col items-center gap-1 text-slate-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <span class="text-[10px] font-semibold">Заметки</span>
+        </button>
+    </nav>
+
+    <!-- Основной скрипт -->
     <script>
-        // Инициализация Telegram WebApp API
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Раскрываем на весь экран
-
-        // Установка имени пользователя из TG
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
-        }
-
-        // Состояние игры (Данные)
-        let gameState = {
-            balance: 500,
-            inventory: [
-                { id: 1, name: "AK-47 | Элитное снаряжение", rarity: "milspec", price: 15, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IAtVv7WpKwVk3_33fDxQ69Szkb-Yg_P4O7fXmFRV7cZ3i-vE896giwO1rhE-N2v6J9XAcAI-aAnW8ljvxey7g5C1vJzKy3Fk7HQg7XfD30vg_vXkXg" }
+        // --- ДАННЫЕ / ХРАНИЛИЩЕ ПО УМОЛЧАНИЮ ---
+        let appState = {
+            tasks: [
+                { id: 1, text: 'Подготовить отчет по работе за месяц', category: 'Работа', completed: false, created: new Date() },
+                { id: 2, text: 'Повторить 20 новых иностранных слов', category: 'Учеба', completed: true, created: new Date() },
+                { id: 3, text: 'Пробежать 5 километров в парке', category: 'Спорт', completed: false, created: new Date() }
             ],
-            tradeSelected: []
+            notes: [
+                { id: 1, title: 'Идеи для проектов', content: '1. Веб-приложение для управления целями.\n2. Бот для автоматической отправки полезных цитат в Телеграм.\n3. Мобильный симулятор планирования времени.', date: '18 мая 2026' },
+                { id: 2, title: 'Список покупок на вечер', content: 'Молоко, бездрожжевой хлеб, спелые авокадо, оливковое масло холодного отжима, свежий базилик, помидоры черри.', date: '17 мая 2026' }
+            ],
+            stats: {
+                pomodoroCount: 0,
+                focusMinutes: 0,
+                weeklyData: [0, 2, 4, 1, 3, 5, 0] // Статистика по дням недели (Пн-Вс)
+            },
+            currentTab: 'dashboard',
+            taskFilter: 'all',
+            timer: {
+                totalSeconds: 1500, // 25 минут по дефолту
+                currentSeconds: 1500,
+                interval: null,
+                isRunning: false,
+                type: 'focus' // focus, short, long
+            }
         };
 
-        // База доступных скинов для дропа
-        const skinPool = [
-            { name: "M4A4 | Магний", rarity: "milspec", price: 12, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IFVSuLOkKAVf2PCfJG0R79Szkb-Yg_P4O7fXmFRV7cZ3i-vE89-j0wawqBA-Ym_1cI6UdwI4NArT_Ffqw7-70cS87ZzAn3Uws3Jw4SmdgVXz1itgZ_Y" },
-            { name: "AWP | Капилляр", rarity: "milspec", price: 25, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IAtdv7WpLA9h7v_3fDxQ69Szkb-Yg_P4O7fXmFRV7cZ3i-vE89-h2wS1_0ZvNTjzd9CQJg9vYFrUrw65m9OgpA" },
-            { name: "AK-47 | Легион Анубиса", rarity: "classified", price: 85, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IKVev7upLwku186YInMXu9mzkb-Ch_b7MrbUqWdY781lxOiS8In33wXiqkpkMTzzJtDHJwE4YF7Q_VfoxO7ohpDuusvInXU2pGB8slvV7bE" },
-            { name: "M4A1-S | Поток информации", rarity: "covert", price: 320, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IAtcvL-gKAVf1Pr3fDxQ69Szkb-KhKbyNrrXl3lU18h0itbN_Iv9nBrm_0U-YGugI4DHJwVtZAnR_wK2kPC70ZS67cidnXM273N25SmdgVXz1hhp0mB" },
-            { name: "Нож Керамбит | Волны", rarity: "covert", price: 1200, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IKVv5OnxKAVl3vmYIG8Su9mKzdHawn6tYeuIzj0BsZZ03-vE89X20ALtr0BlZmr3co7EcQE_NwvYrla-w7q9m9bi60A5zFA" }
-        ];
+        // Запуск приложения при загрузке страницы
+        window.onload = function() {
+            initDate();
+            renderAll();
+            initChart();
+        };
 
-        // Имитация загрузки CS
-        window.addEventListener('DOMContentLoaded', () => {
-            let progress = 0;
-            const fill = document.getElementById('loader-fill');
-            const status = document.getElementById('loader-status');
-            
-            const stages = ["Загрузка ресурсов...", "Проверка шейдеров...", "Синхронизация инвентаря...", "Готово!"];
-            
-            const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 15) + 5;
-                if (progress > 100) progress = 100;
-                
-                fill.style.width = `${progress}%`;
-                
-                if(progress < 30) status.innerText = stages[0];
-                else if(progress < 60) status.innerText = stages[1];
-                else if(progress < 90) status.innerText = stages[2];
-                else status.innerText = stages[3];
-
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        document.getElementById('intro-screen').style.opacity = '0';
-                        setTimeout(() => {
-                            document.getElementById('intro-screen').style.display = 'none';
-                            document.getElementById('main-game').style.display = 'flex';
-                            updateUI();
-                        }, 800);
-                    }, 500);
-                }
-            }, 150);
-        });
-
-        // Обновление интерфейса
-        function updateUI() {
-            document.getElementById('balance-val').innerText = gameState.balance;
-            document.getElementById('inv-count').innerText = gameState.inventory.length;
-            renderInventory();
-            renderTradeLists();
+        // --- ИНИЦИАЛИЗАЦИЯ И ДАТА ---
+        function initDate() {
+            const options = { weekday: 'short', day: 'numeric', month: 'short' };
+            const today = new Date();
+            document.getElementById('current-date').innerText = today.toLocaleDateString('ru-RU', options);
         }
 
-        // Переключение вкладок
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        // --- УВЕДОМЛЕНИЯ ---
+        function showNotification(message) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.innerText = message;
             
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            event.currentTarget.classList.add('active');
+            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-100px]', 'opacity-0');
+            }, 3000);
         }
 
-        // Клик по кейсу (добыча валюты)
-        function clickCase() {
-            gameState.balance += 5;
-            // Лёгкая вибрация телефона при клике через TG SDK
-            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            updateUI();
-        }
+        // --- НАВИГАЦИЯ ---
+        function switchTab(tabId) {
+            appState.currentTab = tabId;
+            
+            // Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            // Показать активную вкладку
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
 
-        // Открытие кейса
-        function openCase() {
-            if (gameState.balance < 100) {
-                alert("Недостаточно денег! Покликай на кейс.");
-                return;
-            }
-            
-            gameState.balance -= 100;
-            
-            // Алгоритм шансов дропа
-            const rand = Math.random() * 100;
-            let droppedSkin;
-            
-            if (rand < 65) droppedSkin = skinPool[Math.floor(Math.random() * 2)]; // 65% Milspec
-            else if (rand < 90) droppedSkin = skinPool[2]; // 25% Classified
-            else droppedSkin = skinPool[3 + Math.floor(Math.random() * 2)]; // 10% Covert/Knife
-            
-            const newSkin = { ...droppedSkin, id: Date.now() };
-            gameState.inventory.push(newSkin);
-            
-            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            
-            alert(`🎉 Вы выбили: ${newSkin.name} ($${newSkin.price})`);
-            updateUI();
-        }
-
-        // Рендер инвентаря
-        function renderInventory() {
-            const container = document.getElementById('inventory-list');
-            container.innerHTML = '';
-            
-            if(gameState.inventory.length === 0) {
-                container.innerHTML = '<p style="grid-column: span 2; text-align:center; color:#555;">Инвентарь пуст</p>';
-                return;
+            // Обновить визуальное состояние кнопок (Десктоп)
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all";
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if(activeBtn) {
+                activeBtn.className = "nav-btn flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-500 text-white font-medium transition-all";
             }
 
-            gameState.inventory.forEach(skin => {
-                const card = document.createElement('div');
-                card.className = `skin-card ${skin.rarity}`;
-                card.innerHTML = `
-                    <img src="${skin.img}">
-                    <div class="skin-name">${skin.name}</div>
-                    <div class="skin-price">$${skin.price}</div>
+            // Обновить визуальное состояние кнопок (Мобильная)
+            document.querySelectorAll('nav.md\\:hidden button').forEach(btn => {
+                btn.classList.replace('text-brand-500', 'text-slate-400');
+            });
+            const activeMobBtn = document.getElementById(`mob-nav-${tabId}`);
+            if(activeMobBtn) {
+                activeMobBtn.classList.replace('text-slate-400', 'text-brand-500');
+            }
+        }
+
+        // --- ОТРЕНДЕРИТЬ ВСЕ ЭЛЕМЕНТЫ ---
+        function renderAll() {
+            renderTasks();
+            renderNotes();
+            updateStats();
+        }
+
+        // --- ОБНОВЛЕНИЕ СТАТИСТИКИ ---
+        function updateStats() {
+            const totalTasks = appState.tasks.length;
+            const completedTasks = appState.tasks.filter(t => t.completed).length;
+            const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // Обновление прогресс-баров
+            document.getElementById('sidebar-progress-text').innerText = `Выполнено задач: ${percent}%`;
+            document.getElementById('sidebar-progress-bar').style.width = `${percent}%`;
+            document.getElementById('mobile-stats').innerText = `${percent}% выполнено`;
+
+            // Обновление числовых метрик на главной панели
+            document.getElementById('stat-total-tasks').innerText = totalTasks;
+            document.getElementById('stat-completed-tasks').innerText = completedTasks;
+            document.getElementById('stat-total-notes').innerText = appState.notes.length;
+            document.getElementById('stat-focus-time').innerText = `${appState.stats.focusMinutes} м`;
+        }
+
+        // --- ЛОГИКА ЗАДАЧ (TO-DO) ---
+        function renderTasks() {
+            const listContainer = document.getElementById('tasks-list');
+            listContainer.innerHTML = '';
+
+            // Фильтрация
+            let filteredTasks = appState.tasks;
+            if (appState.taskFilter === 'active') {
+                filteredTasks = appState.tasks.filter(t => !t.completed);
+            } else if (appState.taskFilter === 'completed') {
+                filteredTasks = appState.tasks.filter(t => t.completed);
+            }
+
+            if (filteredTasks.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl">
+                        <svg class="w-12 h-12 text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0V9a2 2 0 00-2-2H6a2 2 0 00-2 2v4.586a1 1 0 01-.293.707l-2 2a1 1 0 00-.293.707V19a2 2 0 002 2h10a2 2 0 002-2v-4a1 1 0 01.293-.707l2-2a1 1 0 00.293-.707z"/></svg>
+                        <p class="text-slate-400 text-sm">В этой категории пока ничего нет.</p>
+                    </div>
                 `;
-                container.appendChild(card);
+                return;
+            }
+
+            filteredTasks.forEach(task => {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = `flex items-center justify-between p-4 bg-slate-900 border ${task.completed ? 'border-emerald-500/20 bg-slate-900/40' : 'border-slate-800'} rounded-2xl transition-all hover:border-slate-700/80 group`;
+                
+                // Категории цвета
+                let catColor = 'bg-slate-800 text-slate-300';
+                if(task.category === 'Работа') catColor = 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
+                else if(task.category === 'Учеба') catColor = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+                else if(task.category === 'Личное') catColor = 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20';
+                else if(task.category === 'Спорт') catColor = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+
+                taskDiv.innerHTML = `
+                    <div class="flex items-center gap-3.5 flex-1 pr-4">
+                        <button onclick="toggleTaskCompletion(${task.id})" class="shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'border-slate-700 hover:border-brand-500'}">
+                            ${task.completed ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' : ''}
+                        </button>
+                        <div class="flex flex-col gap-1.5">
+                            <span class="text-sm md:text-base font-medium transition-all ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${catColor}">${task.category}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="deleteTask(${task.id})" class="text-slate-500 hover:text-rose-400 p-2 rounded-xl hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                `;
+                listContainer.appendChild(taskDiv);
             });
         }
 
-        // Логика контракта (Трейда)
-        function renderTradeLists() {
-            const availableContainer = document.getElementById('trade-available-list');
-            const slotsContainer = document.getElementById('trade-slots-area');
-            
-            availableContainer.innerHTML = '';
-            
-            // Фильтруем те, что уже не в трейде
-            const availableSkins = gameState.inventory.filter(s => !gameState.tradeSelected.includes(s.id));
-            
-            availableSkins.forEach(skin => {
-                const card = document.createElement('div');
-                card.className = `skin-card ${skin.rarity}`;
-                card.style.cursor = 'pointer';
-                card.innerHTML = `
-                    <img src="${skin.img}">
-                    <div class="skin-name">${skin.name}</div>
-                `;
-                card.onclick = () => selectForTrade(skin.id);
-                availableContainer.appendChild(card);
-            });
+        function handleAddTask(e) {
+            e.preventDefault();
+            const input = document.getElementById('task-input');
+            const category = document.getElementById('task-category');
 
-            // Рендер слотов трейда
-            if (gameState.tradeSelected.length === 0) {
-                slotsContainer.innerHTML = '<div style="color: #555; grid-column: span 3;">Нажмите на скины снизу, чтобы добавить</div>';
+            const newTask = {
+                id: Date.now(),
+                text: input.value.trim(),
+                category: category.value,
+                completed: false,
+                created: new Date()
+            };
+
+            appState.tasks.unshift(newTask);
+            input.value = '';
+            
+            renderAll();
+            showNotification('Задача успешно создана!');
+        }
+
+        function toggleTaskCompletion(taskId) {
+            const task = appState.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                renderAll();
+                showNotification(task.completed ? 'Задача завершена! Молодец!' : 'Задача снова в процессе.');
+            }
+        }
+
+        function deleteTask(taskId) {
+            appState.tasks = appState.tasks.filter(t => t.id !== taskId);
+            renderAll();
+            showNotification('Задача удалена.');
+        }
+
+        function filterTasks(filterType) {
+            appState.taskFilter = filterType;
+            
+            // Сброс стилей на всех фильтрах
+            document.querySelectorAll('#task-filters button').forEach(btn => {
+                btn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/40";
+            });
+            // Активация выбранного
+            document.getElementById(`filter-${filterType}`).className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-500/15 text-brand-400";
+            
+            renderTasks();
+        }
+
+        function clearCompletedTasks() {
+            const count = appState.tasks.filter(t => t.completed).length;
+            if (count === 0) {
+                showNotification('Нет выполненных задач для удаления.');
+                return;
+            }
+            appState.tasks = appState.tasks.filter(t => !t.completed);
+            renderAll();
+            showNotification(`Удалено завершенных задач: ${count}`);
+        }
+
+
+        // --- ЛОГИКА ТАЙМЕРА POMODORO ---
+        function setTimerType(type) {
+            // Изменение режима таймера
+            appState.timer.type = type;
+            if(appState.timer.isRunning) {
+                clearInterval(appState.timer.interval);
+                appState.timer.isRunning = false;
+            }
+
+            if (type === 'focus') {
+                appState.timer.totalSeconds = 1500; // 25м
+                document.getElementById('timer-status-label').innerText = 'Время сфокусироваться';
+            } else if (type === 'short') {
+                appState.timer.totalSeconds = 300; // 5м
+                document.getElementById('timer-status-label').innerText = 'Короткий отдых';
+            } else if (type === 'long') {
+                appState.timer.totalSeconds = 900; // 15м
+                document.getElementById('timer-status-label').innerText = 'Глубокий отдых';
+            }
+
+            appState.timer.currentSeconds = appState.timer.totalSeconds;
+            
+            // Смена активного класса
+            document.querySelectorAll('#type-focus, #type-short, #type-long').forEach(btn => {
+                btn.className = "px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-slate-100 transition-all";
+            });
+            document.getElementById(`type-${type}`).className = "px-4 py-2 text-xs font-bold rounded-xl bg-brand-500 text-white transition-all";
+
+            updateTimerUI();
+        }
+
+        function toggleTimer() {
+            if (appState.timer.isRunning) {
+                // Пауза
+                clearInterval(appState.timer.interval);
+                appState.timer.isRunning = false;
+                showNotification('Таймер на паузе');
             } else {
-                slotsContainer.innerHTML = '';
-                gameState.tradeSelected.forEach(skinId => {
-                    const skin = gameState.inventory.find(s => s.id === skinId);
-                    const slot = document.createElement('div');
-                    slot.className = `skin-card ${skin.rarity}`;
-                    slot.style.border = '1px solid #444';
-                    slot.innerHTML = `<img src="${skin.img}" style="width:50px;">`;
-                    slot.onclick = () => deselectFromTrade(skinId);
-                    slotsContainer.appendChild(slot);
-                });
+                // Запуск
+                appState.timer.isRunning = true;
+                appState.timer.interval = setInterval(timerTick, 1000);
+                showNotification('Концентрация началась!');
+            }
+            updateTimerUI();
+        }
+
+        function timerTick() {
+            if (appState.timer.currentSeconds > 0) {
+                appState.timer.currentSeconds--;
+                updateTimerUI();
+            } else {
+                // Время вышло
+                clearInterval(appState.timer.interval);
+                appState.timer.isRunning = false;
+                
+                playBeep(); // Звуковой сигнал на завершение
+
+                if (appState.timer.type === 'focus') {
+                    appState.stats.focusMinutes += Math.round(appState.timer.totalSeconds / 60);
+                    appState.stats.pomodoroCount++;
+                    // Добавление в сегодняшний день для графика
+                    const day = new Date().getDay(); // 0 (Вс) - 6 (Сб)
+                    const index = day === 0 ? 6 : day - 1; // Превращаем в индекс 0-6 (Пн-Вс)
+                    appState.stats.weeklyData[index]++;
+                    updateChart();
+
+                    showNotification('Прекрасно! Фокус-сессия окончена. Время немного отдохнуть!');
+                    setTimerType('short');
+                } else {
+                    showNotification('Перерыв окончен! Готовы поработать еще?');
+                    setTimerType('focus');
+                }
+                updateTimerUI();
             }
         }
 
-        function selectForTrade(id) {
-            if (gameState.tradeSelected.length >= 3) return;
-            gameState.tradeSelected.push(id);
-            renderTradeLists();
+        function resetTimer() {
+            clearInterval(appState.timer.interval);
+            appState.timer.isRunning = false;
+            appState.timer.currentSeconds = appState.timer.totalSeconds;
+            updateTimerUI();
+            showNotification('Таймер сброшен');
         }
 
-        function deselectFromTrade(id) {
-            gameState.tradeSelected = gameState.tradeSelected.filter(sid => sid !== id);
-            renderTradeLists();
+        function updateTimerUI() {
+            const minutes = Math.floor(appState.timer.currentSeconds / 60);
+            const seconds = appState.timer.currentSeconds % 60;
+            const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            // Обновление цифр
+            document.getElementById('timer-display').innerText = formattedTime;
+            document.getElementById('dash-timer-display').innerText = formattedTime;
+
+            // Обновление SVG кольца
+            const ring = document.getElementById('timer-progress-ring');
+            const circumference = 2 * Math.PI * 45; // 282.7
+            const percentRemaining = appState.timer.currentSeconds / appState.timer.totalSeconds;
+            const strokeDashoffset = circumference * (1 - percentRemaining);
+            ring.style.strokeDashoffset = strokeDashoffset;
+
+            // Обновление кнопки пуск/пауза
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const btnText = document.getElementById('btn-timer-text');
+
+            if (appState.timer.isRunning) {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                btnText.innerText = 'Пауза';
+            } else {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                btnText.innerText = 'Продолжить';
+            }
+
+            updateStats();
         }
 
-        // Выполнение трейд-контракта
-        function executeTrade() {
-            if (gameState.tradeSelected.length < 3) {
-                alert("Для контракта нужно выбрать ровно 3 скина!");
+        // Синтез звукового сигнала с помощью Web Audio API
+        function playBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Ре (D5)
+                oscillator.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.15); // Ля (A5)
+                
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.6);
+            } catch (e) {
+                console.log('Браузер блокирует аудио до первого клика.');
+            }
+        }
+
+
+        // --- ЛОГИКА ЗАМЕТОК ---
+        function renderNotes(filteredNotes = appState.notes) {
+            const grid = document.getElementById('notes-grid');
+            grid.innerHTML = '';
+
+            if(filteredNotes.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-10 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl">
+                        <svg class="w-12 h-12 text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        <p class="text-slate-400 text-sm">У вас еще нет заметок. Начните добавлять свои первые мысли!</p>
+                    </div>
+                `;
                 return;
             }
 
-            // Удаляем старые скины из инвентаря
-            gameState.inventory = gameState.inventory.filter(s => !gameState.tradeSelected.includes(s.id));
-            gameState.tradeSelected = [];
+            filteredNotes.forEach(note => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-slate-700 transition-all group h-64";
+                
+                // Экранирование для корректного переноса текста в UI
+                const safeContent = note.content.replace(/\n/g, '<br>');
 
-            // Бот выдает скин (рандомно, но с шансом получить дорогой)
-            const pool = skinPool.filter(s => s.rarity === "covert" || s.rarity === "classified");
-            const prizeSkin = { ...pool[Math.floor(Math.random() * pool.length)], id: Date.now() };
+                card.innerHTML = `
+                    <div class="overflow-hidden">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <h4 class="font-bold text-slate-200 line-clamp-1">${note.title}</h4>
+                            <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="openEditNoteModal(${note.id})" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800" title="Редактировать">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                </button>
+                                <button onclick="deleteNote(${note.id})" class="text-slate-400 hover:text-rose-400 p-1 rounded-lg hover:bg-rose-500/10" title="Удалить">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-400 line-clamp-6 leading-relaxed">${safeContent}</p>
+                    </div>
+                    <div class="pt-3 border-t border-slate-800/60 mt-4 flex items-center justify-between">
+                        <span class="text-[10px] text-slate-500 font-medium">${note.date}</span>
+                        <button onclick="copyNoteContent('${note.id}')" class="text-xs text-brand-400 hover:text-brand-300 font-bold transition-all flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                            Копировать
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function searchNotes() {
+            const query = document.getElementById('note-search').value.toLowerCase().trim();
+            if (!query) {
+                renderNotes();
+                return;
+            }
+            const filtered = appState.notes.filter(note => 
+                note.title.toLowerCase().includes(query) || 
+                note.content.toLowerCase().includes(query)
+            );
+            renderNotes(filtered);
+        }
+
+        function deleteNote(id) {
+            appState.notes = appState.notes.filter(n => n.id !== id);
+            renderAll();
+            showNotification('Заметка удалена.');
+        }
+
+        function copyNoteContent(id) {
+            const note = appState.notes.find(n => n.id == id);
+            if (note) {
+                // Имитация записи в буфер обмена для совместимости
+                const tempInput = document.createElement('textarea');
+                tempInput.value = note.content;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showNotification('Заметка скопирована в буфер обмена!');
+            }
+        }
+
+        // --- МОДАЛЬНОЕ ОКНО ЗАМЕТОК ---
+        function openCreateNoteModal() {
+            document.getElementById('modal-note-id').value = '';
+            document.getElementById('modal-note-title').value = '';
+            document.getElementById('modal-note-content').value = '';
+            document.getElementById('note-modal-title').innerText = 'Создать новую заметку';
             
-            gameState.inventory.push(prizeSkin);
+            toggleModal(true);
+        }
+
+        function openEditNoteModal(id) {
+            const note = appState.notes.find(n => n.id === id);
+            if(note) {
+                document.getElementById('modal-note-id').value = note.id;
+                document.getElementById('modal-note-title').value = note.title;
+                document.getElementById('modal-note-content').value = note.content;
+                document.getElementById('note-modal-title').innerText = 'Редактировать заметку';
+                
+                toggleModal(true);
+            }
+        }
+
+        function closeNoteModal() {
+            toggleModal(false);
+        }
+
+        function toggleModal(show) {
+            const modal = document.getElementById('note-modal');
+            const card = document.getElementById('note-modal-card');
             
-            alert(`🔄 Трейд завершен! Бот выдал вам: ${prizeSkin.name}`);
-            updateUI();
+            if (show) {
+                modal.classList.remove('pointer-events-none', 'opacity-0');
+                modal.classList.add('opacity-100');
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            } else {
+                modal.classList.add('pointer-events-none', 'opacity-0');
+                modal.classList.remove('opacity-100');
+                card.classList.add('scale-95');
+                card.classList.remove('scale-100');
+            }
+        }
+
+        function handleSaveNote(e) {
+            e.preventDefault();
+            const id = document.getElementById('modal-note-id').value;
+            const title = document.getElementById('modal-note-title').value.trim();
+            const content = document.getElementById('modal-note-content').value.trim();
+            
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            const formattedDate = new Date().toLocaleDateString('ru-RU', options);
+
+            if (id) {
+                // Редактирование существующей
+                const note = appState.notes.find(n => n.id == id);
+                if (note) {
+                    note.title = title;
+                    note.content = content;
+                    note.date = formattedDate;
+                    showNotification('Заметка успешно обновлена!');
+                }
+            } else {
+                // Создание новой
+                const newNote = {
+                    id: Date.now(),
+                    title,
+                    content,
+                    date: formattedDate
+                };
+                appState.notes.unshift(newNote);
+                showNotification('Заметка добавлена!');
+            }
+
+            closeNoteModal();
+            renderAll();
+        }
+
+
+        // --- ИНТЕГРАЦИЯ ИНИЦИАЛИЗАЦИИ ГРАФИКОВ ---
+        let weeklyChartInstance = null;
+
+        function initChart() {
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            
+            // Настройка стилей графика под нашу тему
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            const data = {
+                labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                datasets: [{
+                    label: 'Завершенные помидоры',
+                    data: appState.stats.weeklyData,
+                    borderColor: '#6366f1',
+                    borderWidth: 3,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#6366f1',
+                    pointHoverRadius: 6
+                }]
+            };
+
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(51, 65, 85, 0.3)'
+                            },
+                            ticks: {
+                                precision: 0,
+                                color: '#94a3b8'
+                            },
+                            min: 0
+                        }
+                    }
+                }
+            };
+
+            weeklyChartInstance = new Chart(ctx, config);
+        }
+
+        function updateChart() {
+            if (weeklyChartInstance) {
+                weeklyChartInstance.data.datasets[0].data = appState.stats.weeklyData;
+                weeklyChartInstance.update();
+            }
         }
     </script>
 </body>
