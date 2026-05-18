@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Neon Runner</title>
+    <!-- Подключаем скрипт Telegram Web App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 500px; /* Ограничение для десктопа, на мобилках во весь экран */
+            margin: 0 auto;
+            background: linear-gradient(to bottom, #090914, #140b24);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Интерфейс поверх игры */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .score-box {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ffcc;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+        /* Экраны (Меню / Game Over) */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 13, 26, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: #ff007f;
+            text-shadow: 0 0 15px rgba(255, 0, 127, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        p {
+            color: #8fa0dd;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .btn {
+            pointer-events: auto;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            background: transparent;
+            color: #00ffcc;
+            border: 2px solid #00ffcc;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+            text-transform: uppercase;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            background: rgba(0, 255, 204, 0.2);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Зоны для тапов (управление) */
+        .controls-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 75%; /* Занимает нижнюю часть экрана */
+            display: flex;
+            pointer-events: auto;
+        }
+
+        .control-zone {
+            flex: 1;
+            height: 100%;
+            opacity: 0; /* Визуально невидимы, но кликабельны */
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Канвас для отрисовки игры -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Игровой интерфейс -->
+    <div class="ui-layer">
+        <div class="header">
+            <div class="score-box" id="scoreDisplay">SCORE: 0</div>
+        </div>
+        
+        <!-- Невидимые зоны управления для мобилок -->
+        <div class="controls-overlay" id="controls">
+            <div class="control-zone" id="left-zone"></div>
+            <div class="control-zone" id="right-zone"></div>
+        </div>
+    </div>
+
+    <!-- Главное меню -->
+    <div class="screen" id="menuScreen">
+        <h1>Cyber Runner</h1>
+        <p>Уворачивайся от преград!<br>Тапай по левой/правой части экрана для перемещения.</p>
+        <button class="btn" id="startBtn">Старт</button>
+    </div>
+
+    <!-- Экран Game Over -->
+    <div class="screen hidden" id="gameOverScreen">
+        <h1>Game Over</h1>
+        <p id="finalScore">Вы набрали: 0 очков</p>
+        <button class="btn" id="restartBtn">Повторить</button>
+    </div>
+</div>
+
+<script>
+    // Инициализация Telegram Web App
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand(); // Разворачиваем на весь экран
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Элементы интерфейса
+    const menuScreen = document.getElementById('menuScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const finalScore = document.getElementById('finalScore');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    // Настройка размеров канваса под контейнер
+    function resizeCanvas() {
+        const container = document.getElementById('game-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Игровые переменные
+    let gameState = 'menu'; // menu, playing, gameover
+    let score = 0;
+    let speed = 5;
+    let player;
+    let obstacles = [];
+    let particles = [];
+    let spawnTimer = 0;
+    let lanesCount = 3; // 3 линии движения
+    let currentLane = 1; // Стартовая линия (центр)
+
+    // Конфигурация игрока
+    class Player {
+        constructor() {
+            this.targetX = 0;
+            this.x = 0;
+            this.y = 0;
+            this.width = 40;
+            this.height = 40;
+            this.reset();
+        }
+
+        reset() {
+            currentLane = 1;
+            this.calculatePosition();
+            this.x = this.targetX;
+            this.y = canvas.height * 0.8;
+        }
+
+        calculatePosition() {
+            const laneWidth = canvas.width / lanesCount;
+            this.targetX = (laneWidth * currentLane) + (laneWidth / 2);
+        }
+
+        move(direction) {
+            if (direction === 'left' && currentLane > 0) {
+                currentLane--;
+            } else if (direction === 'right' && currentLane < lanesCount - 1) {
+                currentLane++;
+            }
+            this.calculatePosition();
+            // Легкая вибрация при движении (работает в TWA)
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        update() {
+            // Плавное скольжение к целевой линии
+            this.x += (this.targetX - this.x) * 0.25;
+        }
+
+        draw() {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00ffcc';
+            
+            // Рисуем неоновый треугольный кораблик
+            ctx.fillStyle = '#00ffcc';
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y - this.height / 2);
+            ctx.lineTo(this.x - this.width / 2, this.y + this.height / 2);
+            ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Двигатель/пламя
+            ctx.fillStyle = '#ff007f';
+            ctx.beginPath();
+            ctx.moveTo(this.x - 10, this.y + this.height / 2);
+            ctx.lineTo(this.x + 10, this.y + this.height / 2);
+            ctx.lineTo(this.x, this.y + this.height / 2 + 15 + Math.random() * 10);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.shadowBlur = 0; // Сброс тени
+        }
+    }
+
+    // Класс препятствий
+    class Obstacle {
+        constructor() {
+            const lane = Math.floor(Math.random() * lanesCount);
+            const laneWidth = canvas.width / lanesCount;
+            this.x = (lane * laneWidth) + (laneWidth / 2);
+            this.y = -30;
+            this.radius = 18;
+            this.color = '#ff007f';
+        }
+
+        update() {
+            this.y += speed;
+        }
+
+        draw() {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = this.color;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    // Задний фон (эффект скорости)
+    class Star {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 2;
+            this.speed = Math.random() * 3 + 1;
+        }
+        update() {
+            this.y += this.speed + (speed * 0.5);
+            if (this.y > canvas.height) {
+                this.y = 0;
+                this.x = Math.random() * canvas.width;
+            }
+        }
+        draw() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(this.x, this.y, this.size, this.size);
+        }
+    }
+
+    const stars = Array.from({ length: 40 }, () => new Star());
+    player = new Player();
+
+    // Управление
+    document.getElementById('left-zone').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameState === 'playing') player.move('left');
+    });
+
+    document.getElementById('right-zone').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameState === 'playing') player.move('right');
+    });
+
+    // Поддержка клавиатуры для тестов на ПК
+    window.addEventListener('keydown', (e) => {
+        if (gameState !== 'playing') return;
+        if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') player.move('left');
+        if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') player.move('right');
+    });
+
+    // Старт игры
+    function startGame() {
+        gameState = 'playing';
+        score = 0;
+        speed = 6;
+        obstacles = [];
+        player.reset();
+        scoreDisplay.textContent = `SCORE: ${score}`;
+        menuScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+    }
+
+    // Конец игры
+    function gameOver() {
+        gameState = 'gameover';
+        finalScore.textContent = `Вы набрали: ${score} очков`;
+        gameOverScreen.classList.remove('hidden');
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+    }
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+
+    // Игровой цикл
+    function gameLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Рендерим звезды всегда
+        stars.forEach(star => {
+            star.update();
+            star.draw();
+        });
+
+        if (gameState === 'playing') {
+            player.update();
+            player.draw();
+
+            // Спавн препятствий
+            spawnTimer++;
+            if (spawnTimer > Math.max(30, 70 - speed * 2)) {
+                obstacles.push(new Obstacle());
+                spawnTimer = 0;
+            }
+
+            // Обработка препятствий
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.update();
+                obs.draw();
+
+                // Проверка столкновения (по расстоянию)
+                let dist = Math.hypot(player.x - obs.x, player.y - obs.y);
+                if (dist < obs.radius + player.width / 2) {
+                    gameOver();
+                }
+
+                // Пролетел мимо -> +1 очко
+                if (obs.y > canvas.height + 40) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    scoreDisplay.textContent = `SCORE: ${score}`;
+                    
+                    // Постепенное ускорение
+                    if (score % 5 === 0) speed += 0.5;
+                }
+            }
+        } else if (gameState === 'gameover' || gameState === 'menu') {
+            // Отрисовываем плеер статично в меню
+            player.draw();
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Запуск цикла
+    gameLoop();
+</script>
+</body>
+</html>
