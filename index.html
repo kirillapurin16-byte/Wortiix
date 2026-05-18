@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ru" class="h-full bg-slate-950 text-slate-100 select-none">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Xray VPN Client</title>
+    <title>Xray VLESS Config Generator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -28,458 +29,258 @@
     <style>
         * {
             -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            -webkit-user-select: none;
             outline: none;
         }
-
-        /* Анимация пульсации для активного состояния подключения */
-        @keyframes pulse-border {
-            0% { transform: scale(0.96); opacity: 0.6; }
-            50% { transform: scale(1.08); opacity: 0.2; }
-            100% { transform: scale(1.2); opacity: 0; }
-        }
-        .pulse-ring {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            animation: pulse-border 2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
-        }
-
-        .custom-scroll::-webkit-scrollbar {
-            width: 3px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #222733;
-            border-radius: 2px;
+        body {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
     </style>
 </head>
-<body class="h-full flex justify-center items-center bg-[#030405] overflow-hidden font-mono text-xs">
+<body class="h-full flex justify-center items-center bg-[#030405] overflow-hidden p-4">
 
-    <!-- Главный контейнер приложения, повторяющий пропорции мобильного экрана -->
-    <div class="relative w-full max-w-md h-full md:h-[860px] md:rounded-[36px] md:border-4 md:border-xray-border bg-xray-bg flex flex-col justify-between overflow-hidden shadow-2xl p-5">
+    <!-- Главный контейнер -->
+    <div class="relative w-full max-w-lg h-full md:h-[850px] md:rounded-[28px] md:border-4 md:border-xray-border bg-xray-bg flex flex-col justify-between overflow-hidden shadow-2xl p-6">
         
-        <!-- Шапка с состоянием ядра Xray -->
-        <header class="flex items-center justify-between border-b border-xray-border/40 pb-4 shrink-0">
-            <div>
-                <h1 class="text-[10px] font-black tracking-widest text-xray-textMuted uppercase">XRAY CORE CLIENT</h1>
-                <div class="flex items-center gap-1.5 mt-1">
-                    <span id="status-led" class="w-2 h-2 rounded-full bg-xray-red"></span>
-                    <span id="status-text" class="text-[10px] font-black uppercase text-xray-red">TUNNEL DOWN</span>
-                </div>
-            </div>
-            
-            <div class="bg-xray-panel border border-xray-border px-3 py-1.5 rounded-lg flex items-center gap-2">
-                <span class="text-[9px] font-black uppercase tracking-wider text-white" id="core-version">v1.8.4</span>
-            </div>
+        <!-- Заголовок -->
+        <header class="border-b border-xray-border/40 pb-4 shrink-0">
+            <h1 class="text-xs font-black tracking-widest text-xray-textMuted uppercase">XRAY / VLESS CONFIG HUB</h1>
+            <p class="text-[10px] text-slate-400 mt-1 uppercase">Экспорт настроек из ваших скриншотов в реальный VPN на телефоне</p>
         </header>
 
-        <!-- Выбор конфигурации (из загруженных вами скриншотов) -->
-        <div class="bg-xray-panel/80 border border-xray-border p-3 rounded-xl mt-3 shrink-0">
-            <label class="block text-[8px] text-xray-textMuted font-black uppercase tracking-wider mb-2">Активный профиль конфигурации</label>
-            <div class="flex flex-col gap-2">
-                <select id="profile-selector" onchange="handleProfileChange()" class="w-full bg-black border border-xray-border rounded-lg px-2.5 py-2 text-[10px] text-white font-bold focus:border-xray-accent">
-                    <option value="0">LTE|@xex_vpn #14 (USA, VLESS-Reality)</option>
-                    <option value="1">LTE|@xex_vpn #24 (USA, VLESS-WS-TLS)</option>
-                    <option value="2">LTE|@xex_vpn #84 (USA, VLESS-WS-TLS)</option>
-                </select>
-
-                <!-- Информационные параметры выбранной ноды -->
-                <div class="grid grid-cols-2 gap-2 text-[9px] text-xray-textMuted bg-black/40 p-2 rounded-lg border border-xray-border/40 mt-1">
-                    <div>СЕРВЕР: <span id="info-ip" class="text-slate-200">95.163.211.240</span></div>
-                    <div>ПОРТ: <span id="info-port" class="text-slate-200">8080</span></div>
-                    <div class="col-span-2 truncate">UUID: <span id="info-uuid" class="text-slate-200">c17afb06-8d6f-4dbe-bc28-7794d2ae074e</span></div>
-                    <div>СЕТЬ: <span id="info-network" class="text-slate-200">tcp</span></div>
-                    <div>БЕЗОПАСНОСТЬ: <span id="info-security" class="text-slate-200">reality (eh.vk.com)</span></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Центральный переключатель -->
-        <div class="flex flex-col items-center justify-center my-auto py-2 relative shrink-0">
-            <div id="button-glow" class="absolute w-48 h-48 rounded-full bg-xray-red/5 blur-3xl -z-10 transition-colors duration-500"></div>
-
-            <div class="relative w-36 h-36 flex items-center justify-center">
-                <!-- Пульсирующие кольца при активном туннеле -->
-                <div id="ring-1" class="pulse-ring bg-xray-red/20 hidden"></div>
-                <div id="ring-2" class="pulse-ring bg-xray-red/10 hidden" style="animation-delay: 0.5s;"></div>
-
-                <button onclick="toggleTunnel()" id="main-connect-btn" class="relative w-28 h-28 rounded-full bg-xray-panel border-4 border-xray-red shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-white">
-                    <span id="btn-label-action" class="text-[10px] font-black tracking-widest text-xray-red uppercase">START</span>
-                    <span id="btn-label-sub" class="text-[8px] text-xray-textMuted uppercase mt-1">TAP TO CONNECT</span>
-                </button>
-            </div>
-
-            <!-- Реалистичные показатели скорости и пинга -->
-            <div class="grid grid-cols-3 gap-2 mt-6 w-full px-2 text-center text-[10px]">
-                <div class="bg-xray-panel/40 border border-xray-border/50 p-2 rounded-lg">
-                    <span class="block text-[8px] text-xray-textMuted font-bold uppercase tracking-wider">SPEED</span>
-                    <span id="stat-speed" class="text-white font-black mt-0.5 block">0.00 Mbps</span>
-                </div>
-                <div class="bg-xray-panel/40 border border-xray-border/50 p-2 rounded-lg">
-                    <span class="block text-[8px] text-xray-textMuted font-bold uppercase tracking-wider">DELAY</span>
-                    <span id="stat-ping" class="text-white font-black mt-0.5 block">0 ms</span>
-                </div>
-                <div class="bg-xray-panel/40 border border-xray-border/50 p-2 rounded-lg">
-                    <span class="block text-[8px] text-xray-textMuted font-bold uppercase tracking-wider">UPTIME</span>
-                    <span id="stat-timer" class="text-white font-black mt-0.5 block">00:00:00</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Терминал вывода логов ядра Xray -->
-        <div class="bg-black/90 border border-xray-border/60 p-3 rounded-xl h-28 flex flex-col justify-between shrink-0">
-            <div class="text-[8px] text-xray-textMuted font-black uppercase tracking-wider border-b border-xray-border/30 pb-1 mb-1 flex justify-between">
-                <span>XRAY CORE TERMINAL OUTPUT</span>
-                <span id="active-transport-protocol">VLESS / DIRECT</span>
-            </div>
-            <div id="console-logs" class="custom-scroll flex-1 overflow-y-auto text-[9px] text-slate-300 font-mono space-y-1 pr-1">
-                <div>[INFO] SYSTEM KERNEL READY</div>
-                <div>[INFO] WAITING FOR USER INITIALIZATION</div>
-            </div>
-        </div>
-
-        <!-- Полнофункциональный туннельный веб-браузер (Прокси-браузер) -->
-        <div class="mt-3 border-t border-xray-border/40 pt-3 flex flex-col gap-2 flex-1 min-h-[160px]">
-            <span class="text-[8px] text-xray-textMuted font-black uppercase tracking-wider">TUNNEL PROXY WEB BROWSING (USA AREA)</span>
+        <!-- Основной контент (Прокрутка) -->
+        <div class="flex-1 overflow-y-auto my-4 space-y-4 pr-1">
             
-            <div class="flex gap-1.5 shrink-0">
-                <input id="proxy-url-input" type="text" disabled placeholder="Сначала запустите Xray туннель..." class="flex-1 bg-xray-panel border border-xray-border rounded-lg px-3 py-1.5 text-[10px] text-slate-400 placeholder-xray-textMuted focus:border-xray-accent transition-colors" />
-                <button onclick="requestProxiedPage()" id="proxy-go-btn" disabled class="bg-xray-border text-slate-500 font-black text-[10px] px-4 rounded-lg transition-colors cursor-not-allowed uppercase">GO</button>
+            <!-- Дисклеймер об OS -->
+            <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg text-[10px] leading-relaxed text-yellow-200 uppercase">
+                ВНИМАНИЕ: Браузер не может запустить системный VPN из-за ограничений безопасности Android/iOS. Скопируйте данные конфигурации ниже и импортируйте их в приложение-клиент для реального запуска.
             </div>
-            
-            <!-- Окно вывода защищенного контента -->
-            <div class="relative w-full flex-1 bg-black rounded-xl border border-xray-border/50 overflow-hidden flex items-center justify-center">
-                <iframe id="proxy-iframe" class="w-full h-full hidden" src="about:blank"></iframe>
-                <div id="proxy-placeholder" class="text-[9px] text-xray-textMuted uppercase text-center p-3 leading-relaxed">
-                    Браузер не активен.<br>Запустите подключение для активации зашифрованного канала.
+
+            <!-- ИНСТРУКЦИЯ ПО ЗАПУСКУ -->
+            <div class="bg-xray-panel border border-xray-border p-3 rounded-lg">
+                <span class="block text-[9px] font-black text-xray-accent uppercase tracking-wider mb-2">ПОШАГОВАЯ ИНСТРУКЦИЯ</span>
+                <div class="space-y-2 text-[10px] text-slate-300">
+                    <p>1. Установите клиент на телефон:</p>
+                    <ul class="list-disc list-inside pl-2 space-y-1 text-xray-textMuted">
+                        <li>Для Android: <span class="text-white">v2rayNG</span> или <span class="text-white">NekoBox</span></li>
+                        <li>Для iOS (iPhone): <span class="text-white">Streisand</span>, <span class="text-white">v2rayTUN</span> или <span class="text-white">FoXray</span></li>
+                    </ul>
+                    <p>2. Нажмите кнопку "КОПИРОВАТЬ ССЫЛКУ" на нужном сервере ниже.</p>
+                    <p>3. Откройте приложение, нажмите кнопку добавления профиля (знак плюса) и выберите <span class="text-white">"Импортировать профиль из буфера обмена" (Import from Clipboard)</span>.</p>
+                    <p>4. Нажмите кнопку подключения (круглую кнопку или значок v). VPN запущен на всей системе!</p>
                 </div>
             </div>
+
+            <!-- СПИСОК РЕАЛЬНЫХ СЕРВЕРОВ ИЗ СКРИНШОТОВ -->
+            <div class="space-y-3">
+                <span class="block text-[9px] font-black text-xray-textMuted uppercase tracking-wider">ГЕНЕРАТОР ПРОФИЛЕЙ VLESS</span>
+
+                <!-- Профиль #14 -->
+                <div class="bg-xray-panel/60 border border-xray-border p-3 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-[10px] font-black text-white">LTE|@xex_vpn #14</span>
+                            <span class="block text-[8px] text-xray-textMuted uppercase mt-0.5">95.163.211.240 • VLESS-Reality</span>
+                        </div>
+                        <span class="text-[8px] text-xray-green font-bold border border-xray-green/30 px-1.5 py-0.5 rounded uppercase">US Server</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="copyToClipboard(1)" class="flex-1 bg-xray-accent/20 hover:bg-xray-accent/30 text-xray-accent font-black py-2 rounded text-[10px] uppercase transition-all">Копировать Ссылку</button>
+                        <button onclick="downloadJSON(1)" class="bg-xray-border hover:bg-slate-800 text-white font-bold py-2 px-3 rounded text-[10px] uppercase transition-all">JSON</button>
+                    </div>
+                </div>
+
+                <!-- Профиль #24 -->
+                <div class="bg-xray-panel/60 border border-xray-border p-3 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-[10px] font-black text-white">LTE|@xex_vpn #24</span>
+                            <span class="block text-[8px] text-xray-textMuted uppercase mt-0.5">83.147.253.194 • VLESS-WS-TLS</span>
+                        </div>
+                        <span class="text-[8px] text-xray-green font-bold border border-xray-green/30 px-1.5 py-0.5 rounded uppercase">US Server</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="copyToClipboard(2)" class="flex-1 bg-xray-accent/20 hover:bg-xray-accent/30 text-xray-accent font-black py-2 rounded text-[10px] uppercase transition-all">Копировать Ссылку</button>
+                        <button onclick="downloadJSON(2)" class="bg-xray-border hover:bg-slate-800 text-white font-bold py-2 px-3 rounded text-[10px] uppercase transition-all">JSON</button>
+                    </div>
+                </div>
+
+                <!-- Профиль #84 -->
+                <div class="bg-xray-panel/60 border border-xray-border p-3 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-[10px] font-black text-white">LTE|@xex_vpn #84</span>
+                            <span class="block text-[8px] text-xray-textMuted uppercase mt-0.5">195.209.88.216 • VLESS-WS-TLS</span>
+                        </div>
+                        <span class="text-[8px] text-xray-green font-bold border border-xray-green/30 px-1.5 py-0.5 rounded uppercase">US Server</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="copyToClipboard(3)" class="flex-1 bg-xray-accent/20 hover:bg-xray-accent/30 text-xray-accent font-black py-2 rounded text-[10px] uppercase transition-all">Копировать Ссылку</button>
+                        <button onclick="downloadJSON(3)" class="bg-xray-border hover:bg-slate-800 text-white font-bold py-2 px-3 rounded text-[10px] uppercase transition-all">JSON</button>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
 
-        <!-- Всплывающий Тост-Статус -->
-        <div id="toast" class="absolute top-20 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 bg-xray-panel border border-xray-border text-white px-4 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all duration-300 pointer-events-none">
-            CONNECTED
+        <!-- Текстовое поле для ручного копирования при необходимости -->
+        <div class="bg-black border border-xray-border p-3 rounded-xl shrink-0">
+            <span class="block text-[8px] text-xray-textMuted font-bold uppercase mb-1.5">ВЫВОД СКОПИРОВАННОЙ ССЫЛКИ ДЛЯ ПРОВЕРКИ</span>
+            <textarea id="output-link-textarea" readonly class="w-full bg-xray-bg border border-xray-border rounded p-2 text-[9px] text-slate-400 h-12 resize-none font-mono focus:outline-none"></textarea>
+        </div>
+
+        <!-- Всплывающий Тост-Оповещение -->
+        <div id="toast" class="absolute top-10 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 bg-xray-panel border border-xray-accent text-white px-5 py-2.5 rounded-xl text-[10px] font-bold shadow-2xl transition-all duration-300 pointer-events-none uppercase tracking-wider">
+            Ссылка успешно скопирована!
         </div>
 
     </div>
 
-    <!-- ЛОГИКА VPN/XRAY КЛИЕНТА -->
+    <!-- СКРИПТЫ ГЕНЕРАТОРА -->
     <script>
-        // Конфигурационные профили, полученные из ваших изображений
-        const xrayProfiles = [
-            {
+        // База конфигурационных данных, восстановленная из ваших скриншотов
+        const configs = {
+            1: {
                 name: "LTE|@xex_vpn #14",
+                uuid: "c17afb06-8d6f-4dbe-bc28-7794d2ae074e",
                 ip: "95.163.211.240",
                 port: "8080",
-                uuid: "c17afb06-8d6f-4dbe-bc28-7794d2ae074e",
-                network: "tcp",
-                security: "reality (eh.vk.com)",
-                fingerprint: "chrome",
-                publicKey: "Z84J2IelR9ch3k8VtIVhhs5ycBUIXA7wHBWcBrjc"
+                url: "vless://c17afb06-8d6f-4dbe-bc28-7794d2ae074e@95.163.211.240:8080?encryption=none&security=reality&sni=eh.vk.com&fp=chrome&pbk=Z84J2lelR9ch3k8VtIVhhs5ycBUIXA7wHBWcBjc&sid=7dbf7d3233971d5c&type=tcp#LTE%7C%40xex_vpn%20%2314",
+                json: {
+                    "outbounds": [{
+                        "protocol": "vless",
+                        "settings": {
+                            "vnext": [{
+                                "address": "95.163.211.240",
+                                "port": 8080,
+                                "users": [{
+                                    "id": "c17afb06-8d6f-4dbe-bc28-7794d2ae074e",
+                                    "encryption": "none"
+                                }]
+                            }]
+                        },
+                        "streamSettings": {
+                            "network": "tcp",
+                            "security": "reality",
+                            "realitySettings": {
+                                "serverName": "eh.vk.com",
+                                "fingerprint": "chrome",
+                                "publicKey": "Z84J2lelR9ch3k8VtIVhhs5ycBUIXA7wHBWcBjc",
+                                "shortId": "7dbf7d3233971d5c"
+                            }
+                        }
+                    }]
+                }
             },
-            {
+            2: {
                 name: "LTE|@xex_vpn #24",
+                uuid: "6202b230-417c-4d8e-b624-0f71afa9c75d",
                 ip: "83.147.253.194",
                 port: "443",
-                uuid: "6202b230-417c-4d8e-b624-0f71afa9c75d",
-                network: "ws",
-                security: "tls (sni.111000.indevs.in)",
-                wsPath: "/?ed=2560&Telegram=🇨🇳 @WangCai2"
+                url: "vless://6202b230-417c-4d8e-b624-0f71afa9c75d@83.147.253.194:443?encryption=none&security=tls&sni=sni.111000.indevs.in&type=ws&host=sni.111000.indevs.in&path=%2F%3Fed%3D2560%26Telegram%3D%F0%9F%87%A8%F0%9F%87%B3%20%40WangCai2#LTE%7C%40xex_vpn%20%2324",
+                json: {
+                    "outbounds": [{
+                        "protocol": "vless",
+                        "settings": {
+                            "vnext": [{
+                                "address": "83.147.253.194",
+                                "port": 443,
+                                "users": [{
+                                    "id": "6202b230-417c-4d8e-b624-0f71afa9c75d",
+                                    "encryption": "none"
+                                }]
+                            }]
+                        },
+                        "streamSettings": {
+                            "network": "ws",
+                            "security": "tls",
+                            "tlsSettings": {
+                                "serverName": "sni.111000.indevs.in"
+                            },
+                            "wsSettings": {
+                                "path": "/?ed=2560&Telegram=🇨🇳 @WangCai2",
+                                "headers": {
+                                    "Host": "sni.111000.indevs.in"
+                                }
+                            }
+                        }
+                    }]
+                }
             },
-            {
+            3: {
                 name: "LTE|@xex_vpn #84",
+                uuid: "2075f8d7-0f7a-Fade-9de5-e77632611a13",
                 ip: "195.209.88.216",
                 port: "443",
-                uuid: "2075f8d7-0f7a-Fade-9de5-e77632611a13",
-                network: "ws",
-                security: "tls (s28233.cdn.ngenix.net)",
-                wsPath: "/"
+                url: "vless://2075f8d7-0f7a-Fade-9de5-e77632611a13@195.209.88.216:443?encryption=none&security=tls&sni=s28233.cdn.ngenix.net&type=ws&host=s28233.cdn.ngenix.net&path=%2F#LTE%7C%40xex_vpn%20%2384",
+                json: {
+                    "outbounds": [{
+                        "protocol": "vless",
+                        "settings": {
+                            "vnext": [{
+                                "address": "195.209.88.216",
+                                "port": 443,
+                                "users": [{
+                                    "id": "2075f8d7-0f7a-Fade-9de5-e77632611a13",
+                                    "encryption": "none"
+                                }]
+                            }]
+                        },
+                        "streamSettings": {
+                            "network": "ws",
+                            "security": "tls",
+                            "tlsSettings": {
+                                "serverName": "s28233.cdn.ngenix.net",
+                                "fingerprint": "qq"
+                            },
+                            "wsSettings": {
+                                "path": "/",
+                                "headers": {
+                                    "Host": "s28233.cdn.ngenix.net"
+                                }
+                            }
+                        }
+                    }]
+                }
             }
-        ];
-
-        const state = {
-            status: 'DISCONNECTED', // DISCONNECTED, CONNECTING, CONNECTED, DISCONNECTING
-            activeProfileIndex: 0,
-            timer: 0,
-            timerInterval: null,
-            metricsInterval: null,
-            
-            // Безопасный глобальный прокси-маршрутизатор (США)
-            proxyBaseUrl: "https://api.allorigins.win/raw?url="
         };
 
-        // Логирование событий ядра Xray в терминал
-        function logToTerminal(text, type = "INFO") {
-            const consoleBox = document.getElementById('console-logs');
-            const newLog = document.createElement('div');
-            const time = new Date().toLocaleTimeString();
-            newLog.innerHTML = `<span class="text-xray-textMuted">[${time}]</span> <span class="text-xray-accent">[${type}]</span> ${text}`;
-            consoleBox.appendChild(newLog);
-            consoleBox.scrollTop = consoleBox.scrollHeight;
+        // Копирование строки подключения в буфер
+        function copyToClipboard(id) {
+            const data = configs[id];
+            const textarea = document.getElementById('output-link-textarea');
+            textarea.value = data.url;
+            
+            // Надежный метод копирования для iframe сред
+            textarea.select();
+            document.execCommand('copy');
+            
+            showToast();
         }
 
-        // Выбор профиля
-        function handleProfileChange() {
-            const select = document.getElementById('profile-selector');
-            state.activeProfileIndex = parseInt(select.value);
+        // Скачивание полной JSON конфигурации для ядер NekoBox/Xray
+        function downloadJSON(id) {
+            const data = configs[id];
+            const jsonString = JSON.stringify(data.json, null, 4);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const link = document.createElement("a");
             
-            const profile = xrayProfiles[state.activeProfileIndex];
-            
-            // Обновление UI параметров
-            document.getElementById('info-ip').innerText = profile.ip;
-            document.getElementById('info-port').innerText = profile.port;
-            document.getElementById('info-uuid').innerText = profile.uuid;
-            document.getElementById('info-network').innerText = profile.network;
-            document.getElementById('info-security').innerText = profile.security;
-
-            logToTerminal(`Загружен профиль: ${profile.name}`);
-            
-            if (state.status === 'CONNECTED') {
-                logToTerminal("Требуется перезапуск туннеля для применения настроек", "WARN");
-            }
+            link.href = URL.createObjectURL(blob);
+            link.download = `config_${data.name.replace(/\|/g, '').replace(/@/g, '')}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
-        // Подключение / Отключение
-        function toggleTunnel() {
-            if (state.status === 'DISCONNECTED') {
-                startTunnelConnection();
-            } else if (state.status === 'CONNECTED') {
-                stopTunnelConnection();
-            }
-        }
-
-        // Процесс запуска туннеля
-        function startTunnelConnection() {
-            state.status = 'CONNECTING';
-            updateUI();
-            
-            const p = xrayProfiles[state.activeProfileIndex];
-            logToTerminal(`Инициализация Xray ядра...`, "SYSTEM");
-            
+        // Всплывающее уведомление
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0', '-translate-y-12');
+            toast.classList.add('opacity-100', 'translate-y-0');
             setTimeout(() => {
-                logToTerminal(`Подключение к сокету ${p.ip}:${p.port}...`);
-                playBeepTone(280, 0.1);
-            }, 600);
-
-            setTimeout(() => {
-                if (p.network === 'ws') {
-                    logToTerminal(`WebSocket хэндшейк по пути: ${p.wsPath || '/'}`);
-                } else {
-                    logToTerminal(`TLS Reality рукопожатие с SNI: eh.vk.com`);
-                }
-                playBeepTone(380, 0.1);
-            }, 1200);
-
-            setTimeout(() => {
-                logToTerminal(`Авторизация UUID: ${p.uuid}`);
-                playBeepTone(480, 0.1);
-            }, 1800);
-
-            setTimeout(() => {
-                state.status = 'CONNECTED';
-                showToastNotification("CONNECTED");
-                logToTerminal(`Туннель запущен. Трафик зашифрован.`, "SYSTEM");
-                playBeepTone(650, 0.3);
-                
-                startMetricsAndTimer();
-                updateUI();
-            }, 2400);
-        }
-
-        // Остановка туннеля
-        function stopTunnelConnection() {
-            state.status = 'DISCONNECTING';
-            updateUI();
-            
-            clearInterval(state.timerInterval);
-            clearInterval(state.metricsInterval);
-            state.timer = 0;
-
-            logToTerminal("Разрыв зашифрованного канала...");
-            
-            setTimeout(() => {
-                state.status = 'DISCONNECTED';
-                showToastNotification("DISCONNECTED");
-                logToTerminal("Ядро Xray остановлено.", "SYSTEM");
-                playBeepTone(160, 0.25);
-                updateUI();
-            }, 1000);
-        }
-
-        // Обновление элементов интерфейса
-        function updateUI() {
-            const btn = document.getElementById('main-connect-btn');
-            const statusLed = document.getElementById('status-led');
-            const statusTxt = document.getElementById('status-text');
-            const glow = document.getElementById('button-glow');
-            const btnAction = document.getElementById('btn-label-action');
-            const btnSub = document.getElementById('btn-label-sub');
-            const rings = document.querySelectorAll('.pulse-ring');
-            const urlInput = document.getElementById('proxy-url-input');
-            const goBtn = document.getElementById('proxy-go-btn');
-            const iframe = document.getElementById('proxy-iframe');
-            const placeholder = document.getElementById('proxy-placeholder');
-            const p = xrayProfiles[state.activeProfileIndex];
-
-            // Обновляем транспортный индикатор в консоли
-            document.getElementById('active-transport-protocol').innerText = p.network === 'ws' ? "VLESS / WS-TLS" : "VLESS / REALITY";
-
-            if (state.status === 'DISCONNECTED') {
-                btn.className = "relative w-28 h-28 rounded-full bg-xray-panel border-4 border-xray-red shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-white";
-                statusLed.className = "w-2 h-2 rounded-full bg-xray-red";
-                statusTxt.className = "text-[10px] font-black uppercase text-xray-red";
-                statusTxt.innerText = "TUNNEL DOWN";
-                glow.className = "absolute w-48 h-48 rounded-full bg-xray-red/5 blur-3xl -z-10 transition-colors duration-500";
-                btnAction.innerText = "START";
-                btnAction.className = "text-[10px] font-black tracking-widest text-xray-red uppercase";
-                btnSub.innerText = "TAP TO CONNECT";
-                
-                rings.forEach(r => r.classList.add('hidden'));
-                
-                urlInput.disabled = true;
-                urlInput.placeholder = "Сначала запустите Xray туннель...";
-                urlInput.className = "flex-1 bg-xray-panel border border-xray-border rounded-lg px-3 py-1.5 text-[10px] text-slate-500 placeholder-xray-textMuted";
-                goBtn.disabled = true;
-                goBtn.className = "bg-xray-border text-slate-500 font-black text-[10px] px-4 rounded-lg cursor-not-allowed uppercase";
-                
-                iframe.classList.add('hidden');
-                placeholder.classList.remove('hidden');
-
-                document.getElementById('stat-speed').innerText = "0.00 Mbps";
-                document.getElementById('stat-ping').innerText = "0 ms";
-                document.getElementById('stat-timer').innerText = "00:00:00";
-            } 
-            else if (state.status === 'CONNECTING') {
-                btn.className = "relative w-28 h-28 rounded-full bg-xray-panel border-4 border-yellow-500 shadow-2xl flex flex-col items-center justify-center cursor-pointer animate-pulse";
-                statusLed.className = "w-2 h-2 rounded-full bg-yellow-500";
-                statusTxt.className = "text-[10px] font-black uppercase text-yellow-500";
-                statusTxt.innerText = "CONNECTING...";
-                btnAction.innerText = "WAIT";
-                btnAction.className = "text-[10px] font-black tracking-widest text-yellow-500 uppercase";
-                btnSub.innerText = "ESTABLISHING...";
-            } 
-            else if (state.status === 'CONNECTED') {
-                btn.className = "relative w-28 h-28 rounded-full bg-xray-panel border-4 border-xray-green shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-white";
-                statusLed.className = "w-2 h-2 rounded-full bg-xray-green";
-                statusTxt.className = "text-[10px] font-black uppercase text-xray-green";
-                statusTxt.innerText = "TUNNEL ACTIVE";
-                glow.className = "absolute w-48 h-48 rounded-full bg-xray-green/10 blur-3xl -z-10 transition-colors duration-500";
-                btnAction.innerText = "STOP";
-                btnAction.className = "text-[10px] font-black tracking-widest text-xray-green uppercase";
-                btnSub.innerText = "SAFE TUNNEL RUNNING";
-                
-                rings.forEach(r => {
-                    r.classList.remove('hidden');
-                    r.classList.replace('bg-xray-red/20', 'bg-xray-green/20');
-                    r.classList.replace('bg-xray-red/10', 'bg-xray-green/10');
-                });
-
-                urlInput.disabled = false;
-                urlInput.placeholder = "Введите адрес (например: google.com)...";
-                urlInput.className = "flex-1 bg-xray-panel border border-xray-border rounded-lg px-3 py-1.5 text-[10px] text-white placeholder-xray-textMuted focus:border-xray-accent transition-colors";
-                goBtn.disabled = false;
-                goBtn.className = "bg-xray-green text-slate-950 font-black text-[10px] px-4 rounded-lg cursor-pointer hover:bg-white";
-                
-                placeholder.classList.add('hidden');
-                iframe.classList.remove('hidden');
-                iframe.src = "about:blank";
-                iframe.contentWindow.document.write("<body style='background:#000;color:#64748b;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-size:10px;'>XRAY CORE PROXY IS ACTIVE. ENTER URL ABOVE.</body>");
-            }
-            else if (state.status === 'DISCONNECTING') {
-                btn.className = "relative w-28 h-28 rounded-full bg-xray-panel border-4 border-yellow-500 shadow-2xl flex flex-col items-center justify-center cursor-pointer animate-pulse";
-                statusLed.className = "w-2 h-2 rounded-full bg-yellow-500";
-                statusTxt.className = "text-[10px] font-black uppercase text-yellow-500";
-                statusTxt.innerText = "DISCONNECTING...";
-            }
-        }
-
-        // Таймер и флуктуация сетевых метрик
-        function startMetricsAndTimer() {
-            // Пишем в логи пинг до выбранного IP
-            const activeProfile = xrayProfiles[state.activeProfileIndex];
-            logToTerminal(`Замер задержки до ${activeProfile.ip}...`);
-            
-            setTimeout(() => {
-                const basePing = Math.floor(90 + Math.random() * 40);
-                document.getElementById('stat-ping').innerText = `${basePing} ms`;
-                logToTerminal(`Успешный отклик: ${basePing}ms`);
-            }, 600);
-
-            // Uptime таймер
-            state.timerInterval = setInterval(() => {
-                state.timer++;
-                const hrs = String(Math.floor(state.timer / 3600)).padStart(2, '0');
-                const mins = String(Math.floor((state.timer % 3600) / 60)).padStart(2, '0');
-                const secs = String(state.timer % 60).padStart(2, '0');
-                document.getElementById('stat-timer').innerText = `${hrs}:${mins}:${secs}`;
-            }, 1000);
-
-            // Имитация скорости
-            state.metricsInterval = setInterval(() => {
-                const speed = (40 + Math.random() * 55).toFixed(2);
-                document.getElementById('stat-speed').innerText = `${speed} Mbps`;
-
-                const pingVar = Math.floor(90 + Math.random() * 30);
-                document.getElementById('stat-ping').innerText = `${pingVar} ms`;
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-12');
             }, 2000);
-        }
-
-        // Проксированный запрос к сайту
-        function requestProxiedPage() {
-            let url = document.getElementById('proxy-url-input').value.trim();
-            if (!url) return;
-
-            if (!/^https?:\/\//i.test(url)) {
-                url = 'https://' + url;
-            }
-
-            logToTerminal(`Маршрутизация GET запроса: ${url}`);
-            const iframe = document.getElementById('proxy-iframe');
-            
-            // Загрузка через шлюз
-            iframe.src = state.proxyBaseUrl + encodeURIComponent(url);
-            
-            iframe.onload = function() {
-                logToTerminal(`Данные с ${url} декодированы и доставлены в песочницу.`, "SUCCESS");
-            };
-        }
-
-        // Уведомления-тосты
-        function showToastNotification(text) {
-            const t = document.getElementById('toast');
-            t.innerText = text;
-            
-            if (text === "CONNECTED") {
-                t.className = "absolute top-20 left-1/2 -translate-x-1/2 z-50 transform translate-y-0 opacity-100 bg-xray-panel border border-xray-green text-xray-green px-4 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all duration-300 pointer-events-none";
-            } else {
-                t.className = "absolute top-20 left-1/2 -translate-x-1/2 z-50 transform translate-y-0 opacity-100 bg-xray-panel border border-xray-red text-xray-red px-4 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all duration-300 pointer-events-none";
-            }
-
-            setTimeout(() => {
-                t.classList.add('opacity-0', '-translate-y-12');
-            }, 2000);
-        }
-
-        // Генератор звуковых тонов
-        function playBeepTone(freq, duration) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + duration);
-            } catch (e) {}
         }
     </script>
 </body>
