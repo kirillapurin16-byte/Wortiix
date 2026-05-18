@@ -3,426 +3,1504 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Neon Runner</title>
-    <!-- Подключаем скрипт Telegram Web App -->
+    <title>Cyber Space Cargo Tycoon</title>
+    <!-- Telegram Web App API -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #03030d;
+            --panel-bg: #0b0c16;
+            --accent-cyan: #00f3ff;
+            --accent-pink: #ff0055;
+            --accent-purple: #8a2be2;
+            --text-main: #f0f3ff;
+            --text-muted: #737b98;
+            --success: #39ff14;
+        }
+
         * {
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
             margin: 0;
             padding: 0;
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif;
         }
 
         body, html {
             width: 100%;
             height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             overflow: hidden;
-            background-color: #0d0d1a;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #fff;
         }
 
-        #game-container {
+        /* Главный адаптивный контейнер */
+        #app-wrapper {
             position: relative;
             width: 100%;
             height: 100%;
-            max-width: 500px; /* Ограничение для десктопа, на мобилках во весь экран */
+            max-width: 480px;
             margin: 0 auto;
-            background: linear-gradient(to bottom, #090914, #140b24);
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            background: radial-gradient(circle at top, #0d0f28 0%, #03030d 100%);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.15);
+            border-left: 1px solid rgba(0, 243, 255, 0.05);
+            border-right: 1px solid rgba(0, 243, 255, 0.05);
         }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Интерфейс поверх игры */
-        .ui-layer {
+        /* Звездное небо на бэкграунде */
+        #space-canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
+            z-index: 1;
         }
 
-        .header {
+        .interactive-layer {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Шапка: Статус, Уровень, Энергия */
+        .status-header {
+            padding: 16px 16px 8px 16px;
+            background: rgba(11, 12, 22, 0.65);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+        }
+
+        .user-profile {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            pointer-events: auto;
+            margin-bottom: 10px;
         }
 
-        .score-box {
-            font-size: 24px;
-            font-weight: bold;
-            color: #00ffcc;
-            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        .user-rank {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        /* Экраны (Меню / Game Over) */
-        .screen {
+        .xp-container {
+            flex-grow: 1;
+            margin: 0 15px;
+            background: rgba(255, 255, 255, 0.05);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+        }
+
+        .xp-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: width 0.3s ease;
+        }
+
+        .level-badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            background: var(--accent-purple);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 900;
+        }
+
+        /* Главная панель баланса */
+        .balance-panel {
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        .balance-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .balance-amount {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 34px;
+            font-weight: 900;
+            color: var(--text-main);
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .balance-amount img, .currency-icon {
+            width: 28px;
+            height: 28px;
+            filter: drop-shadow(0 0 8px var(--accent-cyan));
+        }
+
+        .income-ticker {
+            font-size: 13px;
+            color: var(--accent-cyan);
+            margin-top: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .income-ticker span {
+            font-weight: 700;
+        }
+
+        /* Навигация между главными вкладками */
+        .main-nav {
+            display: flex;
+            background: rgba(11, 12, 22, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 4px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 12px 6px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-btn.active {
+            color: var(--accent-cyan);
+            border-bottom: 2px solid var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        .nav-btn-icon {
+            font-size: 18px;
+        }
+
+        /* Контентная зона */
+        .view-port {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 16px 90px 16px; /* Отступ снизу под нижнее меню */
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Стилизация вкладок улучшений */
+        .upgrade-sub-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .sub-tab-btn {
+            flex: 1;
+            padding: 8px 4px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .sub-tab-btn.active {
+            background: var(--panel-bg);
+            color: var(--text-main);
+            border: 1px solid rgba(0, 243, 255, 0.15);
+        }
+
+        /* Список карточек */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .upgrade-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: border-color 0.2s, transform 0.1s;
+        }
+
+        .upgrade-card:active {
+            transform: scale(0.98);
+        }
+
+        .upgrade-card.affordable {
+            border-color: rgba(0, 243, 255, 0.15);
+        }
+
+        .card-header-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .card-emoji {
+            font-size: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .card-meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-name {
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .card-lvl {
+            font-size: 10px;
+            color: var(--accent-purple);
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .card-effect {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .card-effect span {
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .buy-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #00bdcc, #00f3ff);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            box-shadow: 0 4px 10px rgba(0, 243, 255, 0.2);
+        }
+
+        .buy-btn.locked {
+            background: #1c1e29;
+            color: #555c72;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Экспедиции */
+        .missions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mission-card {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mission-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .mission-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .mission-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .mission-rewards {
+            display: flex;
+            gap: 15px;
+            background: rgba(0,0,0,0.25);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 14px;
+        }
+
+        .reward-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .reward-item span {
+            font-weight: 700;
+        }
+
+        .reward-xp { color: var(--accent-purple); }
+        .reward-cash { color: var(--accent-cyan); }
+        .reward-risk { color: var(--accent-pink); }
+
+        .mission-action-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .mission-action-btn:hover:not(:disabled) {
+            background: rgba(0, 243, 255, 0.1);
+        }
+
+        .mission-action-btn:disabled {
+            border-color: #1e2230;
+            color: #515668;
+            cursor: not-allowed;
+        }
+
+        /* Прогресс экспедиции */
+        .mission-progress-container {
+            margin-top: 8px;
+            display: none;
+        }
+
+        .mission-progress-container.active {
+            display: block;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .progress-track {
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+        }
+
+        /* Панель профиля и достижений */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item-box {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .stat-val {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .stat-lbl {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* Список Достижений */
+        .achievements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .achievement-row {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 3px solid #1c1e29;
+        }
+
+        .achievement-row.completed {
+            border-left-color: var(--success);
+        }
+
+        .ach-badge {
+            font-size: 22px;
+            background: rgba(255,255,255,0.02);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .ach-info {
+            flex: 1;
+        }
+
+        .ach-title {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .ach-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .ach-status {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .ach-status.done {
+            color: var(--success);
+        }
+
+        /* Случайные События (Всплывающее предупреждение) */
+        .event-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(13, 13, 26, 0.85);
-            backdrop-filter: blur(5px);
+            background: rgba(3, 3, 13, 0.9);
+            z-index: 100;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
-            z-index: 10;
-            padding: 30px;
-            text-align: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
 
-        h1 {
-            font-size: 36px;
-            margin-bottom: 10px;
-            color: #ff007f;
-            text-shadow: 0 0 15px rgba(255, 0, 127, 0.6);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        p {
-            color: #8fa0dd;
-            margin-bottom: 30px;
-            font-size: 16px;
-        }
-
-        .btn {
+        .event-overlay.active {
+            opacity: 1;
             pointer-events: auto;
-            padding: 15px 40px;
+        }
+
+        .event-modal {
+            background: var(--panel-bg);
+            border: 2px solid var(--accent-pink);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .event-overlay.active .event-modal {
+            transform: scale(1);
+        }
+
+        .event-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        .event-title {
+            font-family: 'Orbitron', sans-serif;
             font-size: 18px;
-            font-weight: bold;
-            background: transparent;
-            color: #00ffcc;
-            border: 2px solid #00ffcc;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+            font-weight: 900;
+            color: var(--accent-pink);
+            margin-bottom: 8px;
             text-transform: uppercase;
         }
 
-        .btn:active {
-            transform: scale(0.95);
-            background: rgba(0, 255, 204, 0.2);
+        .event-text {
+            font-size: 13px;
+            color: var(--text-main);
+            margin-bottom: 20px;
+            line-height: 1.4;
         }
 
-        .hidden {
-            display: none !important;
+        .event-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-pink);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(255, 0, 85, 0.3);
         }
 
-        /* Зоны для тапов (управление) */
-        .controls-overlay {
+        /* Навигационная панель в самом низу (постоянная) */
+        .bottom-nav {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 75%; /* Занимает нижнюю часть экрана */
+            height: 70px;
+            background: rgba(11, 12, 22, 0.95);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
-            pointer-events: auto;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 50;
+            padding: 0 10px;
         }
 
-        .control-zone {
-            flex: 1;
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 11px;
+            text-decoration: none;
+            font-weight: 600;
+            width: 25%;
             height: 100%;
-            opacity: 0; /* Визуально невидимы, но кликабельны */
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .bottom-nav-item.active {
+            color: var(--accent-cyan);
+        }
+
+        .bottom-nav-item.active .b-icon {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        .b-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+        }
+
+        /* Всплывающие уведомления (Toast) */
+        .toast-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            width: 90%;
+            max-width: 320px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(11, 12, 22, 0.95);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 6px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideDown 0.3s ease forwards;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <!-- Канвас для отрисовки игры -->
-    <canvas id="gameCanvas"></canvas>
+<div id="app-wrapper">
+    <!-- Канвас космического неба -->
+    <canvas id="space-canvas"></canvas>
 
-    <!-- Игровой интерфейс -->
-    <div class="ui-layer">
-        <div class="header">
-            <div class="score-box" id="scoreDisplay">SCORE: 0</div>
-        </div>
+    <!-- Весь интерактивный UI слой поверх -->
+    <div class="interactive-layer">
         
-        <!-- Невидимые зоны управления для мобилок -->
-        <div class="controls-overlay" id="controls">
-            <div class="control-zone" id="left-zone"></div>
-            <div class="control-zone" id="right-zone"></div>
+        <!-- Личный кабинет: Прогресс уровня -->
+        <div class="status-header">
+            <div class="user-profile">
+                <div class="user-rank">
+                    <span id="rankIcon">🚀</span>
+                    <span id="rankTitle">Мл. Пилот</span>
+                </div>
+                <div class="xp-container">
+                    <div class="xp-bar" id="xpBar"></div>
+                </div>
+                <div class="level-badge" id="levelBadge">LVL 1</div>
+            </div>
+
+            <!-- Баланс и доход -->
+            <div class="balance-panel">
+                <div class="balance-label">Баланс Кредитов</div>
+                <div class="balance-amount">
+                    <span style="color: var(--accent-cyan)">⚛</span>
+                    <span id="balanceDisplay">150.00</span>
+                </div>
+                <div class="income-ticker">
+                    Пассивный доход: <span id="incomeDisplay">+0.00 / с</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. ВКЛАДКА: УЛУЧШЕНИЯ -->
+        <div class="view-port">
+            <div class="view-section active" id="view-upgrades">
+                <!-- Категории улучшений -->
+                <div class="upgrade-sub-tabs">
+                    <button class="sub-tab-btn active" onclick="filterUpgrades('infra')">База</button>
+                    <button class="sub-tab-btn" onclick="filterUpgrades('fleet')">Корабли</button>
+                    <button class="sub-tab-btn" onclick="filterUpgrades('tech')">Наука</button>
+                    <button class="sub-tab-btn" onclick="filterUpgrades('pr')">Реклама</button>
+                </div>
+
+                <!-- Контейнер для карточек апгрейдов -->
+                <div class="cards-grid" id="upgradesGrid">
+                    <!-- Заполняется динамически из JS -->
+                </div>
+            </div>
+
+            <!-- 2. ВКЛАДКА: ЭКСПЕДИЦИИ -->
+            <div class="view-section" id="view-expeditions">
+                <div class="missions-list" id="missionsGrid">
+                    <!-- Заполняется динамически из JS -->
+                </div>
+            </div>
+
+            <!-- 3. ВКЛАДКА: СТАТИСТИКА И ПРОФИЛЬ -->
+            <div class="view-section" id="view-stats">
+                <div class="stats-grid">
+                    <div class="stat-item-box">
+                        <div class="stat-val" id="statTotalEarned">0.00</div>
+                        <div class="stat-lbl">Всего заработано</div>
+                    </div>
+                    <div class="stat-item-box">
+                        <div class="stat-val" id="statTotalUpgrades">0</div>
+                        <div class="stat-lbl">Куплено улучшений</div>
+                    </div>
+                    <div class="stat-item-box">
+                        <div class="stat-val" id="statTotalExpeditions">0</div>
+                        <div class="stat-lbl">Успешных рейсов</div>
+                    </div>
+                    <div class="stat-item-box">
+                        <div class="stat-val" id="statPlayTime">0м</div>
+                        <div class="stat-lbl">Время в симуляции</div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 20px 0 10px 0; font-family: 'Orbitron'; font-size: 15px; color: var(--accent-cyan)">Корпоративные Достижения</h3>
+                <div class="achievements-list" id="achievementsGrid">
+                    <!-- Заполняется динамически из JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Нижнее меню навигации -->
+        <div class="bottom-nav">
+            <div class="bottom-nav-item active" onclick="switchMainTab('upgrades', this)">
+                <span class="b-icon">⚙️</span>
+                <span>Шахта</span>
+            </div>
+            <div class="bottom-nav-item" onclick="switchMainTab('expeditions', this)">
+                <span class="b-icon">🛰️</span>
+                <span>Экспедиции</span>
+            </div>
+            <div class="bottom-nav-item" onclick="switchMainTab('stats', this)">
+                <span class="b-icon">👤</span>
+                <span>Статистика</span>
+            </div>
         </div>
     </div>
 
-    <!-- Главное меню -->
-    <div class="screen" id="menuScreen">
-        <h1>Cyber Runner</h1>
-        <p>Уворачивайся от преград!<br>Тапай по левой/правой части экрана для перемещения.</p>
-        <button class="btn" id="startBtn">Старт</button>
+    <!-- Всплывающий контейнер случайных событий -->
+    <div class="event-overlay" id="eventOverlay">
+        <div class="event-modal">
+            <div class="event-icon" id="eventIcon">⚠️</div>
+            <div class="event-title" id="eventTitle">Космический Шторм</div>
+            <div class="event-text" id="eventText">Все системы связи вышли из строя. Доход в секунду временно снижен!</div>
+            <button class="event-btn" id="eventBtn" onclick="closeEventModal()">Принять протоколы</button>
+        </div>
     </div>
 
-    <!-- Экран Game Over -->
-    <div class="screen hidden" id="gameOverScreen">
-        <h1>Game Over</h1>
-        <p id="finalScore">Вы набрали: 0 очков</p>
-        <button class="btn" id="restartBtn">Повторить</button>
-    </div>
+    <!-- Контейнер всплывающих уведомлений -->
+    <div class="toast-container" id="toastContainer"></div>
 </div>
 
 <script>
-    // Инициализация Telegram Web App
+    // Настройка Telegram Web App API
     const tg = window.Telegram.WebApp;
     tg.ready();
-    tg.expand(); // Разворачиваем на весь экран
+    tg.expand();
 
-    const canvas = document.getElementById('gameCanvas');
+    // Настройка Canvas для звездного фона
+    const canvas = document.getElementById('space-canvas');
     const ctx = canvas.getContext('2d');
+    let stars = [];
 
-    // Элементы интерфейса
-    const menuScreen = document.getElementById('menuScreen');
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const scoreDisplay = document.getElementById('scoreDisplay');
-    const finalScore = document.getElementById('finalScore');
-    const startBtn = document.getElementById('startBtn');
-    const restartBtn = document.getElementById('restartBtn');
-
-    // Настройка размеров канваса под контейнер
-    function resizeCanvas() {
-        const container = document.getElementById('game-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    // Игровые переменные
-    let gameState = 'menu'; // menu, playing, gameover
-    let score = 0;
-    let speed = 5;
-    let player;
-    let obstacles = [];
-    let particles = [];
-    let spawnTimer = 0;
-    let lanesCount = 3; // 3 линии движения
-    let currentLane = 1; // Стартовая линия (центр)
-
-    // Конфигурация игрока
-    class Player {
-        constructor() {
-            this.targetX = 0;
-            this.x = 0;
-            this.y = 0;
-            this.width = 40;
-            this.height = 40;
-            this.reset();
-        }
-
-        reset() {
-            currentLane = 1;
-            this.calculatePosition();
-            this.x = this.targetX;
-            this.y = canvas.height * 0.8;
-        }
-
-        calculatePosition() {
-            const laneWidth = canvas.width / lanesCount;
-            this.targetX = (laneWidth * currentLane) + (laneWidth / 2);
-        }
-
-        move(direction) {
-            if (direction === 'left' && currentLane > 0) {
-                currentLane--;
-            } else if (direction === 'right' && currentLane < lanesCount - 1) {
-                currentLane++;
-            }
-            this.calculatePosition();
-            // Легкая вибрация при движении (работает в TWA)
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-        }
-
-        update() {
-            // Плавное скольжение к целевой линии
-            this.x += (this.targetX - this.x) * 0.25;
-        }
-
-        draw() {
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#00ffcc';
-            
-            // Рисуем неоновый треугольный кораблик
-            ctx.fillStyle = '#00ffcc';
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y - this.height / 2);
-            ctx.lineTo(this.x - this.width / 2, this.y + this.height / 2);
-            ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2);
-            ctx.closePath();
-            ctx.fill();
-
-            // Двигатель/пламя
-            ctx.fillStyle = '#ff007f';
-            ctx.beginPath();
-            ctx.moveTo(this.x - 10, this.y + this.height / 2);
-            ctx.lineTo(this.x + 10, this.y + this.height / 2);
-            ctx.lineTo(this.x, this.y + this.height / 2 + 15 + Math.random() * 10);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.shadowBlur = 0; // Сброс тени
-        }
+    function initCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        stars = Array.from({ length: 60 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 1.5,
+            alpha: Math.random(),
+            speed: Math.random() * 0.4 + 0.1
+        }));
     }
 
-    // Класс препятствий
-    class Obstacle {
-        constructor() {
-            const lane = Math.floor(Math.random() * lanesCount);
-            const laneWidth = canvas.width / lanesCount;
-            this.x = (lane * laneWidth) + (laneWidth / 2);
-            this.y = -30;
-            this.radius = 18;
-            this.color = '#ff007f';
-        }
-
-        update() {
-            this.y += speed;
-        }
-
-        draw() {
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = this.color;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        }
-    }
-
-    // Задний фон (эффект скорости)
-    class Star {
-        constructor() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.size = Math.random() * 2;
-            this.speed = Math.random() * 3 + 1;
-        }
-        update() {
-            this.y += this.speed + (speed * 0.5);
-            if (this.y > canvas.height) {
-                this.y = 0;
-                this.x = Math.random() * canvas.width;
-            }
-        }
-        draw() {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.fillRect(this.x, this.y, this.size, this.size);
-        }
-    }
-
-    const stars = Array.from({ length: 40 }, () => new Star());
-    player = new Player();
-
-    // Управление
-    document.getElementById('left-zone').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (gameState === 'playing') player.move('left');
-    });
-
-    document.getElementById('right-zone').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (gameState === 'playing') player.move('right');
-    });
-
-    // Поддержка клавиатуры для тестов на ПК
-    window.addEventListener('keydown', (e) => {
-        if (gameState !== 'playing') return;
-        if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') player.move('left');
-        if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') player.move('right');
-    });
-
-    // Старт игры
-    function startGame() {
-        gameState = 'playing';
-        score = 0;
-        speed = 6;
-        obstacles = [];
-        player.reset();
-        scoreDisplay.textContent = `SCORE: ${score}`;
-        menuScreen.classList.add('hidden');
-        gameOverScreen.classList.add('hidden');
-    }
-
-    // Конец игры
-    function gameOver() {
-        gameState = 'gameover';
-        finalScore.textContent = `Вы набрали: ${score} очков`;
-        gameOverScreen.classList.remove('hidden');
-        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-    }
-
-    startBtn.addEventListener('click', startGame);
-    restartBtn.addEventListener('click', startGame);
-
-    // Игровой цикл
-    function gameLoop() {
+    function animateStars() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Рендерим звезды всегда
         stars.forEach(star => {
-            star.update();
-            star.draw();
+            star.alpha += star.speed * 0.02;
+            if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
+            ctx.fillStyle = `rgba(0, 243, 255, ${Math.abs(star.alpha) * 0.5})`;
+            ctx.fillRect(star.x, star.y, star.size, star.size);
         });
-
-        if (gameState === 'playing') {
-            player.update();
-            player.draw();
-
-            // Спавн препятствий
-            spawnTimer++;
-            if (spawnTimer > Math.max(30, 70 - speed * 2)) {
-                obstacles.push(new Obstacle());
-                spawnTimer = 0;
-            }
-
-            // Обработка препятствий
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                let obs = obstacles[i];
-                obs.update();
-                obs.draw();
-
-                // Проверка столкновения (по расстоянию)
-                let dist = Math.hypot(player.x - obs.x, player.y - obs.y);
-                if (dist < obs.radius + player.width / 2) {
-                    gameOver();
-                }
-
-                // Пролетел мимо -> +1 очко
-                if (obs.y > canvas.height + 40) {
-                    obstacles.splice(i, 1);
-                    score++;
-                    scoreDisplay.textContent = `SCORE: ${score}`;
-                    
-                    // Постепенное ускорение
-                    if (score % 5 === 0) speed += 0.5;
-                }
-            }
-        } else if (gameState === 'gameover' || gameState === 'menu') {
-            // Отрисовываем плеер статично в меню
-            player.draw();
-        }
-
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(animateStars);
     }
 
-    // Запуск цикла
-    gameLoop();
+    window.addEventListener('resize', () => {
+        initCanvas();
+    });
+    initCanvas();
+    animateStars();
+
+    // ГЛОБАЛЬНАЯ БАЗА ИГРЫ
+    let userProgress = {
+        balance: 150.00,
+        totalEarned: 150.00,
+        totalUpgradesBought: 0,
+        totalExpeditionsDone: 0,
+        timeSeconds: 0,
+        level: 1,
+        xp: 0,
+        xpNeeded: 100,
+        currentFilter: 'infra',
+        activeExpeditions: {}, // id_миссии -> {endTime: ms, isFinished: bool}
+    };
+
+    // Данные улучшений
+    const UPGRADES_DB = {
+        // Категория: База (infra)
+        solarCollectors: { id: 'solarCollectors', name: 'Гелио-сборщики', cost: 100, baseIncome: 1.5, level: 0, category: 'infra', icon: '☀️' },
+        orbitalHydro: { id: 'orbitalHydro', name: 'Гидропоника на орбите', cost: 450, baseIncome: 8.0, level: 0, category: 'infra', icon: '🌱' },
+        oreExtractor: { id: 'oreExtractor', name: 'Экстрактор астероидов', cost: 1200, baseIncome: 24.0, level: 0, category: 'infra', icon: '⛏️' },
+        hePower: { id: 'hePower', name: 'Реактор Гелий-3', cost: 6500, baseIncome: 140.0, level: 0, category: 'infra', icon: '🔋' },
+
+        // Категория: Корабли (fleet)
+        droneTransport: { id: 'droneTransport', name: 'Грузовые Дроны', cost: 250, baseIncome: 4.5, level: 0, category: 'fleet', icon: '🛸' },
+        lightShuttle: { id: 'lightShuttle', name: 'Легкий Шаттл', cost: 850, baseIncome: 18.0, level: 0, category: 'fleet', icon: '🚀' },
+        cargoFrigate: { id: 'cargoFrigate', name: 'Тяжелый Фрегат', cost: 3500, baseIncome: 75.0, level: 0, category: 'fleet', icon: '🚢' },
+        quantumGal: { id: 'quantumGal', name: 'Сверхсветовой Крейсер', cost: 18000, baseIncome: 450.0, level: 0, category: 'fleet', icon: '🛰️' },
+
+        // Категория: Наука (tech)
+        nanoComp: { id: 'nanoComp', name: 'Нано-вычисления', cost: 400, baseIncome: 9.0, level: 0, category: 'tech', icon: '💾' },
+        gravDrive: { id: 'gravDrive', name: 'Гравитационные Двигатели', cost: 1600, baseIncome: 38.0, level: 0, category: 'tech', icon: '🌀' },
+        darkMatter: { id: 'darkMatter', name: 'Темная материя', cost: 9500, baseIncome: 210.0, level: 0, category: 'tech', icon: '🌌' },
+
+        // Категория: Реклама (pr)
+        holoAd: { id: 'holoAd', name: 'Голо-Кампания', cost: 150, baseIncome: 2.0, level: 0, category: 'pr', icon: '📺' },
+        galNet: { id: 'galNet', name: 'Галактический Нетворк', cost: 1100, baseIncome: 25.0, level: 0, category: 'pr', icon: '📡' },
+        tradeHub: { id: 'tradeHub', name: 'Собственный Торговый Хаб', cost: 7000, baseIncome: 160.0, level: 0, category: 'pr', icon: '🏰' }
+    };
+
+    // База данных экспедиций (разный риск и длительность)
+    const EXPEDITIONS_DB = [
+        { id: 'exp1', title: 'Контрабанда на Луну', desc: 'Доставить редкие микрочипы на теневую сторону Луны. Опасно, но прибыльно.', duration: 15, cost: 50, rewardCash: 120, rewardXp: 40, risk: '20%' },
+        { id: 'exp2', title: 'Зачистка Кладбища Кораблей', desc: 'Сбор ценного лома на заброшенных верфях Альфы Центавра.', duration: 45, cost: 150, rewardCash: 380, rewardXp: 120, risk: '10%' },
+        { id: 'exp3', title: 'Шахтерская база в поясе Койпера', desc: 'Удаленный сектор со сложными условиями гравитации. Высочайший уровень риска.', duration: 120, cost: 500, rewardCash: 1600, rewardXp: 500, risk: '35%' },
+        { id: 'exp4', title: 'Исследование Черной Дыры', desc: 'Экспериментальный запуск автоматического зонда для сбора квантовых данных.', duration: 300, cost: 1500, rewardCash: 5200, rewardXp: 1600, risk: '40%' }
+    ];
+
+    // База достижений
+    const ACHIEVEMENTS_DB = [
+        { id: 'ach1', title: 'Первый Корпоративный Шаг', desc: 'Приобрести любое улучшение 1-го уровня.', check: () => userProgress.totalUpgradesBought >= 1, completed: false, icon: '🌟' },
+        { id: 'ach2', title: 'Магнат Инфраструктуры', desc: 'Купить суммарно 10 улучшений категории База.', check: () => countUpgradesByCategory('infra') >= 10, completed: false, icon: '🏢' },
+        { id: 'ach3', title: 'Космический Шериф', desc: 'Завершить 5 успешных экспедиций.', check: () => userProgress.totalExpeditionsDone >= 5, completed: false, icon: '🎖️' },
+        { id: 'ach4', title: 'Миллиардный Доход', desc: 'Достичь пассивного дохода более 100 кредитов в секунду.', check: () => calculateIncomePerSecond() >= 100, completed: false, icon: '💎' },
+        { id: 'ach5', title: 'Сквозь Тернии к Звездам', desc: 'Достичь 5-го уровня развития.', check: () => userProgress.level >= 5, completed: false, icon: '🌌' }
+    ];
+
+    // Ранги пилота
+    const RANGS = [
+        { minLvl: 1, title: 'Мл. Навигатор', icon: '🚀' },
+        { minLvl: 3, title: 'Командор Хаба', icon: '🛰️' },
+        { minLvl: 5, title: 'Директор Сектора', icon: '🛸' },
+        { minLvl: 8, title: 'Лорд Галактики', icon: '👑' }
+    ];
+
+    // Загрузка сейвов
+    function loadGame() {
+        const saved = localStorage.getItem('space_tycoon_progressive_save');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                userProgress.balance = parsed.balance ?? 150.00;
+                userProgress.totalEarned = parsed.totalEarned ?? 150.00;
+                userProgress.totalUpgradesBought = parsed.totalUpgradesBought ?? 0;
+                userProgress.totalExpeditionsDone = parsed.totalExpeditionsDone ?? 0;
+                userProgress.timeSeconds = parsed.timeSeconds ?? 0;
+                userProgress.level = parsed.level ?? 1;
+                userProgress.xp = parsed.xp ?? 0;
+                userProgress.xpNeeded = parsed.xpNeeded ?? 100;
+                userProgress.activeExpeditions = parsed.activeExpeditions ?? {};
+
+                // Восстановление уровней карточек
+                if (parsed.upgrades) {
+                    for (let key in parsed.upgrades) {
+                        if (UPGRADES_DB[key]) {
+                            UPGRADES_DB[key].level = parsed.upgrades[key].level;
+                        }
+                    }
+                }
+
+                // Восстановление статуса ачивок
+                if (parsed.achievements) {
+                    ACHIEVEMENTS_DB.forEach((ach, index) => {
+                        if (parsed.achievements[index]) {
+                            ach.completed = parsed.achievements[index].completed;
+                        }
+                    });
+                }
+            } catch(e) {
+                console.log("Ошибка загрузки данных сохранения. Начата новая игра.", e);
+            }
+        }
+        updateRank();
+        updateLevelProgress();
+    }
+
+    // Сохранение игрового процесса
+    function saveGame() {
+        const dataToSave = {
+            balance: userProgress.balance,
+            totalEarned: userProgress.totalEarned,
+            totalUpgradesBought: userProgress.totalUpgradesBought,
+            totalExpeditionsDone: userProgress.totalExpeditionsDone,
+            timeSeconds: userProgress.timeSeconds,
+            level: userProgress.level,
+            xp: userProgress.xp,
+            xpNeeded: userProgress.xpNeeded,
+            activeExpeditions: userProgress.activeExpeditions,
+            upgrades: Object.keys(UPGRADES_DB).reduce((acc, cur) => {
+                acc[cur] = { level: UPGRADES_DB[cur].level };
+                return acc;
+            }, {}),
+            achievements: ACHIEVEMENTS_DB.map(a => ({ completed: a.completed }))
+        };
+        localStorage.setItem('space_tycoon_progressive_save', JSON.stringify(dataToSave));
+    }
+
+    // Всплывающие уведомления (Toasts)
+    function showToast(text, color = 'var(--accent-cyan)') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.borderLeftColor = color;
+        toast.innerHTML = `<span>${text}</span> <span style="cursor:pointer; font-weight:bold" onclick="this.parentElement.remove()">×</span>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3500);
+    }
+
+    // Переключение главных вкладок
+    function switchMainTab(tabId, el) {
+        document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
+
+        el.classList.add('active');
+        document.getElementById(`view-${tabId}`).classList.add('active');
+
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+        if (tabId === 'upgrades') renderUpgradesList();
+        if (tabId === 'expeditions') renderExpeditionsList();
+        if (tabId === 'stats') renderStatsAndAchievements();
+    }
+
+    // Фильтр улучшений (База / Корабли / Наука / Маркетинг)
+    function filterUpgrades(category) {
+        userProgress.currentFilter = category;
+        document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        renderUpgradesList();
+    }
+
+    // Калькулятор цен и доходов
+    function getUpgradeCost(upg) {
+        return Math.floor(upg.cost * Math.pow(1.36, upg.level));
+    }
+
+    function getUpgradeIncome(upg) {
+        return upg.level * upg.baseIncome;
+    }
+
+    function calculateIncomePerSecond() {
+        let total = 0;
+        for (let key in UPGRADES_DB) {
+            total += getUpgradeIncome(UPGRADES_DB[key]);
+        }
+        return total;
+    }
+
+    function countUpgradesByCategory(cat) {
+        let count = 0;
+        for (let key in UPGRADES_DB) {
+            if (UPGRADES_DB[key].category === cat) {
+                count += UPGRADES_DB[key].level;
+            }
+        }
+        return count;
+    }
+
+    // Отрисовка Вкладки: Улучшения
+    function renderUpgradesList() {
+        const container = document.getElementById('upgradesGrid');
+        container.innerHTML = '';
+
+        const filtered = Object.values(UPGRADES_DB).filter(u => u.category === userProgress.currentFilter);
+
+        filtered.forEach(upg => {
+            const cost = getUpgradeCost(upg);
+            const nextIncomeGain = upg.baseIncome;
+            const currentIncome = getUpgradeIncome(upg);
+            const canAfford = userProgress.balance >= cost;
+
+            const card = document.createElement('div');
+            card.className = `upgrade-card ${canAfford ? 'affordable' : ''}`;
+            card.id = `card-${upg.id}`;
+            card.innerHTML = `
+                <div>
+                    <div class="card-header-info">
+                        <div class="card-emoji">${upg.icon}</div>
+                        <div class="card-meta">
+                            <span class="card-name">${upg.name}</span>
+                            <span class="card-lvl">УРОВЕНЬ ${upg.level}</span>
+                        </div>
+                    </div>
+                    <div class="card-effect">Доход: <span>+${currentIncome.toFixed(1)}/с</span><br>След. ур: +${nextIncomeGain.toFixed(1)}/с</div>
+                </div>
+                <div>
+                    <button class="buy-btn ${canAfford ? '' : 'locked'}" onclick="buyUpgrade('${upg.id}')">
+                        ${canAfford ? '⚙️' : '🔒'} Купить за ${cost}
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Процедура покупки улучшения
+    function buyUpgrade(id) {
+        const upg = UPGRADES_DB[id];
+        if (!upg) return;
+
+        const cost = getUpgradeCost(upg);
+        if (userProgress.balance >= cost) {
+            userProgress.balance -= cost;
+            upg.level++;
+            userProgress.totalUpgradesBought++;
+            
+            addXp(Math.floor(cost * 0.15)); // 15% от цены идет в опыт
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            showToast(`Успешно куплен: ${upg.name} (Ур. ${upg.level})`, 'var(--success)');
+            
+            renderUpgradesList();
+            updateGlobalUI();
+            checkAchievements();
+            saveGame();
+        } else {
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            showToast("Недостаточно кредитов!", 'var(--accent-pink)');
+        }
+    }
+
+    // Добавление XP и обработка повышения уровня
+    function addXp(amount) {
+        userProgress.xp += amount;
+        while (userProgress.xp >= userProgress.xpNeeded) {
+            userProgress.xp -= userProgress.xpNeeded;
+            userProgress.level++;
+            userProgress.xpNeeded = Math.floor(userProgress.xpNeeded * 1.5);
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            showToast(`🎉 ВЫ ПОВЫСИЛИ УРОВЕНЬ: ${userProgress.level}!`, 'var(--success)');
+            updateRank();
+        }
+        updateLevelProgress();
+    }
+
+    // Обновление Ранга в зависимости от уровня
+    function updateRank() {
+        let currentRank = RANGS[0];
+        RANGS.forEach(r => {
+            if (userProgress.level >= r.minLvl) {
+                currentRank = r;
+            }
+        });
+        document.getElementById('rankIcon').textContent = currentRank.icon;
+        document.getElementById('rankTitle').textContent = currentRank.title;
+        document.getElementById('levelBadge').textContent = `LVL ${userProgress.level}`;
+    }
+
+    function updateLevelProgress() {
+        const percentage = Math.min(100, (userProgress.xp / userProgress.xpNeeded) * 100);
+        document.getElementById('xpBar').style.width = `${percentage}%`;
+    }
+
+    // Отрисовка Вкладки: Экспедиции
+    function renderExpeditionsList() {
+        const container = document.getElementById('missionsGrid');
+        container.innerHTML = '';
+
+        EXPEDITIONS_DB.forEach(exp => {
+            const activeExp = userProgress.activeExpeditions[exp.id];
+            let isRunning = false;
+            let timeRemainingText = '';
+            let isClaimable = false;
+
+            if (activeExp) {
+                const now = Date.now();
+                if (now < activeExp.endTime) {
+                    isRunning = true;
+                    const remSec = Math.ceil((activeExp.endTime - now) / 1000);
+                    timeRemainingText = `В рейсе: ${remSec}с`;
+                } else {
+                    isClaimable = true;
+                }
+            }
+
+            const card = document.createElement('div');
+            card.className = 'mission-card';
+            card.id = `mission-${exp.id}`;
+            card.innerHTML = `
+                <div class="mission-top">
+                    <span class="mission-title">${exp.title}</span>
+                    ${isRunning ? `<span style="color:var(--accent-cyan); font-weight:bold; font-size:12px">${timeRemainingText}</span>` : ''}
+                </div>
+                <div class="mission-desc">${exp.desc}</div>
+                <div class="mission-rewards">
+                    <div class="reward-item">💰 <span class="reward-cash">+${exp.rewardCash}</span></div>
+                    <div class="reward-item">⭐ <span class="reward-xp">+${exp.rewardXp} XP</span></div>
+                    <div class="reward-item">⚡ Риск: <span class="reward-risk">${exp.risk}</span></div>
+                </div>
+                
+                <div class="mission-progress-container ${isRunning ? 'active' : ''}">
+                    <div class="progress-meta">
+                        <span>Прогресс транспортировки...</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="fill-${exp.id}"></div>
+                    </div>
+                </div>
+
+                <button class="mission-action-btn" id="btn-${exp.id}" onclick="handleMissionAction('${exp.id}')" ${isRunning ? 'disabled' : ''}>
+                    ${isClaimable ? 'Собрать награду' : `Начать миссию (-${exp.cost} ⚛)`}
+                </button>
+            `;
+            container.appendChild(card);
+
+            if (isRunning) {
+                updateProgressFill(exp.id, activeExp.endTime, exp.duration);
+            }
+        });
+    }
+
+    // Обновление статус-бара экспедиции
+    function updateProgressFill(id, endTime, durationSec) {
+        const fill = document.getElementById(`fill-${id}`);
+        if (!fill) return;
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const totalDuration = durationSec * 1000;
+            const remaining = endTime - now;
+
+            if (remaining <= 0) {
+                clearInterval(interval);
+                renderExpeditionsList(); // Перерендер для смены статуса на Собрать Награду
+            } else {
+                const percent = ((totalDuration - remaining) / totalDuration) * 100;
+                fill.style.width = `${percent}%`;
+                
+                // Динамически обновляем секунды на таймере в карточке
+                const card = document.getElementById(`mission-${id}`);
+                const timerSpan = card ? card.querySelector('.mission-top span:last-child') : null;
+                if (timerSpan) {
+                    timerSpan.textContent = `В рейсе: ${Math.ceil(remaining / 1000)}с`;
+                }
+            }
+        }, 100);
+    }
+
+    // Начать или Завершить миссию
+    function handleMissionAction(id) {
+        const exp = EXPEDITIONS_DB.find(e => e.id === id);
+        if (!exp) return;
+
+        const activeExp = userProgress.activeExpeditions[id];
+
+        // 1. Сбор награды (если завершена)
+        if (activeExp && Date.now() >= activeExp.endTime) {
+            // Проверка на фатальный риск
+            const riskValue = parseInt(exp.risk);
+            const roll = Math.random() * 100;
+
+            if (roll < riskValue) {
+                // Провал миссии из-за риска
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                showToast(`🚨 Ошибка рейса! Корабль попал в засаду. Награда потеряна!`, 'var(--accent-pink)');
+            } else {
+                // Успешный исход
+                userProgress.balance += exp.rewardCash;
+                userProgress.totalEarned += exp.rewardCash;
+                userProgress.totalExpeditionsDone++;
+                addXp(exp.rewardXp);
+                
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                showToast(`🏆 Экспедиция успешно вернулась! Получено ${exp.rewardCash} ⚛`, 'var(--success)');
+            }
+
+            delete userProgress.activeExpeditions[id];
+            saveGame();
+            renderExpeditionsList();
+            checkAchievements();
+            updateGlobalUI();
+            return;
+        }
+
+        // 2. Старт миссии
+        if (userProgress.balance >= exp.cost) {
+            userProgress.balance -= exp.cost;
+            const endTime = Date.now() + (exp.duration * 1000);
+            userProgress.activeExpeditions[id] = { endTime: endTime, isFinished: false };
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            showToast(`🚀 Наш флот отправился на миссию: ${exp.title}`, 'var(--accent-cyan)');
+
+            saveGame();
+            renderExpeditionsList();
+            updateGlobalUI();
+        } else {
+            showToast("Недостаточно кредитов для подготовки запуска фрактального прыжка!", 'var(--accent-pink)');
+        }
+    }
+
+    // Отрисовка Вкладки: Статистика и Достижения
+    function renderStatsAndAchievements() {
+        document.getElementById('statTotalEarned').textContent = userProgress.totalEarned.toFixed(2);
+        document.getElementById('statTotalUpgrades').textContent = userProgress.totalUpgradesBought;
+        document.getElementById('statTotalExpeditions').textContent = userProgress.totalExpeditionsDone;
+        document.getElementById('statPlayTime').textContent = `${Math.floor(userProgress.timeSeconds / 60)}м`;
+
+        const container = document.getElementById('achievementsGrid');
+        container.innerHTML = '';
+
+        ACHIEVEMENTS_DB.forEach(ach => {
+            const card = document.createElement('div');
+            card.className = `achievement-row ${ach.completed ? 'completed' : ''}`;
+            card.innerHTML = `
+                <div class="ach-badge">${ach.completed ? '🏆' : ach.icon}</div>
+                <div class="ach-info">
+                    <div class="ach-title" style="color: ${ach.completed ? 'var(--accent-cyan)' : 'var(--text-main)'}">${ach.title}</div>
+                    <div class="ach-desc">${ach.desc}</div>
+                </div>
+                <div class="ach-status ${ach.completed ? 'done' : ''}">
+                    ${ach.completed ? 'ВЫПОЛНЕНО' : 'В ПРОЦЕССЕ'}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Проверка условий выполнения достижений
+    function checkAchievements() {
+        ACHIEVEMENTS_DB.forEach(ach => {
+            if (!ach.completed && ach.check()) {
+                ach.completed = true;
+                addXp(150); // Бонус XP за ачивку
+                showToast(`🏆 Достижение разблокировано: ${ach.title}!`, 'var(--success)');
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                saveGame();
+            }
+        });
+    }
+
+    // Системный таймер: Начисления пассивного дохода и игровой таймер
+    let lastTick = Date.now();
+    setInterval(() => {
+        const now = Date.now();
+        const delta = (now - lastTick) / 1000;
+        lastTick = now;
+
+        const currentIncome = calculateIncomePerSecond();
+        if (currentIncome > 0) {
+            const added = currentIncome * delta;
+            userProgress.balance += added;
+            userProgress.totalEarned += added;
+            updateGlobalUI();
+        }
+    }, 100);
+
+    // Секундный таймер
+    setInterval(() => {
+        userProgress.timeSeconds++;
+        
+        // Автоматическое сохранение каждые 15 секунд
+        if (userProgress.timeSeconds % 15 === 0) {
+            saveGame();
+        }
+
+        // Рендерим запущенные экспедиции каждую секунду для обновления таймера на экране
+        const expSection = document.getElementById('view-expeditions');
+        if (expSection && expSection.classList.contains('active')) {
+            renderExpeditionsList();
+        }
+
+        // Рендерим характеристики на вкладке статистики раз в секунду
+        const statsSection = document.getElementById('view-stats');
+        if (statsSection && statsSection.classList.contains('active')) {
+            document.getElementById('statPlayTime').textContent = `${Math.floor(userProgress.timeSeconds / 60)}м`;
+        }
+    }, 1000);
+
+    // Функция обновления основного баланса и дохода на экране
+    function updateGlobalUI() {
+        document.getElementById('balanceDisplay').textContent = userProgress.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('incomeDisplay').textContent = `+${calculateIncomePerSecond().toFixed(2)} / с`;
+
+        // Обновляем доступность кнопок на текущей вкладке улучшений, чтобы они не моргали
+        const upgradesSection = document.getElementById('view-upgrades');
+        if (upgradesSection && upgradesSection.classList.contains('active')) {
+            Object.values(UPGRADES_DB).forEach(upg => {
+                if (upg.category === userProgress.currentFilter) {
+                    const card = document.getElementById(`card-${upg.id}`);
+                    const btn = card ? card.querySelector('.buy-btn') : null;
+                    if (btn) {
+                        const cost = getUpgradeCost(upg);
+                        const canAfford = userProgress.balance >= cost;
+                        if (canAfford) {
+                            btn.classList.remove('locked');
+                            btn.innerHTML = `⚙️ Купить за ${cost}`;
+                        } else {
+                            btn.classList.add('locked');
+                            btn.innerHTML = `🔒 Купить за ${cost}`;
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    /* СЛУЧАЙНЫЕ СОБЫТИЯ (ГАЛАКТИЧЕСКИЕ ИВЕНТЫ) */
+    const EVENT_TEMPLATES = [
+        {
+            title: 'Инвестиции Совета',
+            text: 'Галактический Совет выделил вашей логистической компании экстренные субсидии! На ваш счет зачислено 350 кредитов.',
+            icon: '🎁',
+            action: () => {
+                userProgress.balance += 350;
+                userProgress.totalEarned += 350;
+                updateGlobalUI();
+            }
+        },
+        {
+            title: 'Аномальная вспышка',
+            text: 'Нано-вычислители перегрузились в квантовом поле. Ваши пассивные технологии временно увеличили свою эффективность!',
+            icon: '⚡',
+            action: () => {
+                // Мгновенный доход за 10 секунд работы
+                const bonus = calculateIncomePerSecond() * 15;
+                if (bonus > 0) {
+                    userProgress.balance += bonus;
+                    userProgress.totalEarned += bonus;
+                    updateGlobalUI();
+                    showToast(`⚡ Получено +${bonus.toFixed(1)} ⚛ от солнечной вспышки!`);
+                }
+            }
+        },
+        {
+            title: 'Набег пиратов',
+            text: 'Крупный пиратский картель "Черная Звезда" перехватил часть транзакций вашего транспортного хаба. Вы потеряли 80 кредитов.',
+            icon: '🏴‍☠️',
+            action: () => {
+                userProgress.balance = Math.max(0, userProgress.balance - 80);
+                updateGlobalUI();
+            }
+        }
+    ];
+
+    // Запуск случайных событий раз в 60-90 секунд
+    function triggerRandomEvent() {
+        if (gameStateActive()) {
+            const randIndex = Math.floor(Math.random() * EVENT_TEMPLATES.length);
+            const template = EVENT_TEMPLATES[randIndex];
+
+            document.getElementById('eventIcon').textContent = template.icon;
+            document.getElementById('eventTitle').textContent = template.title;
+            document.getElementById('eventText').textContent = template.text;
+            
+            // Назначаем коллбэк для кнопки закрытия
+            document.getElementById('eventBtn').onclick = () => {
+                template.action();
+                closeEventModal();
+            };
+
+            document.getElementById('eventOverlay').classList.add('active');
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+    }
+
+    function gameStateActive() {
+        // События происходят только когда игрок активно находится в игре
+        return document.getElementById('eventOverlay').classList.contains('active') === false;
+    }
+
+    function closeEventModal() {
+        document.getElementById('eventOverlay').classList.remove('active');
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        saveGame();
+    }
+
+    // Случайный таймер запуска ивентов
+    setInterval(() => {
+        if (Math.random() < 0.35) { // 35% шанс возникновения события каждую минуту
+            triggerRandomEvent();
+        }
+    }, 60000);
+
+    // Первая инициализация
+    loadGame();
+    updateGlobalUI();
+    renderUpgradesList();
+
 </script>
 </body>
 </html>
