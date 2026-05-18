@@ -1,25 +1,26 @@
 
 <!DOCTYPE html>
-<html lang="ru" class="h-full bg-slate-950 text-slate-100">
+<html lang="ru" class="h-full bg-slate-950 text-slate-100 select-none">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Центр Продуктивности</title>
-    <!-- Tailwind CSS CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hamster Kombat - Симулятор CEO</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js для интерактивных графиков -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
+                        gold: {
+                            400: '#F3BA2F',
+                            500: '#E5A91A',
+                            600: '#C79210',
+                        },
+                        dark: {
+                            800: '#1c1f24',
+                            900: '#15181c',
+                            950: '#0e1013',
                         }
                     }
                 }
@@ -27,935 +28,757 @@
         }
     </script>
     <style>
-        /* Стилизация скроллбара */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        /* Предотвращение выделения текста и двойного тапа для зума на iOS */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
+        
+        /* Анимация летящих цифр при клике */
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-120px) scale(0.8) rotate(5deg);
+            }
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(99, 102, 241, 0.4);
-            border-radius: 4px;
+        .click-particle {
+            position: absolute;
+            animation: floatUp 0.8s cubic-bezier(0.25, 1, 0.50, 1) forwards;
+            pointer-events: none;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(99, 102, 241, 0.7);
+
+        /* Анимация пульсации золотого свечения за хомяком */
+        @keyframes subtlePulse {
+            0%, 100% { transform: scale(1); opacity: 0.15; }
+            50% { transform: scale(1.15); opacity: 0.25; }
+        }
+        .glow-bg {
+            animation: subtlePulse 4s ease-in-out infinite;
+        }
+
+        /* Анимация сжатия при клике */
+        .hamster-btn {
+            transition: transform 0.05s ease-out;
+        }
+        .hamster-btn:active {
+            transform: scale(0.92);
         }
     </style>
 </head>
-<body class="h-full flex flex-col md:flex-row overflow-hidden font-sans">
+<body class="h-full flex justify-center items-center bg-black overflow-hidden font-sans">
 
-    <!-- Боковая панель навигации (для десктопов) -->
-    <aside class="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 p-6 gap-8">
-        <div class="flex items-center gap-3">
-            <div class="p-2 bg-brand-500/10 text-brand-500 rounded-xl">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-            <div>
-                <h1 class="font-bold text-lg leading-none">ФокусХаб</h1>
-                <span class="text-xs text-slate-400">Твой личный ассистент</span>
-            </div>
-        </div>
-
-        <nav class="flex flex-col gap-2">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-500 text-white font-medium transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
-                Панель управления
-            </button>
-            <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                Задачи
-            </button>
-            <button onclick="switchTab('pomodoro')" id="nav-pomodoro" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Помидор таймер
-            </button>
-            <button onclick="switchTab('notes')" id="nav-notes" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                Заметки
-            </button>
-        </nav>
-
-        <div class="mt-auto bg-slate-800/40 border border-slate-800 p-4 rounded-2xl">
-            <h4 class="font-semibold text-sm mb-1">Ваш статус сегодня</h4>
-            <p class="text-xs text-slate-400 mb-3" id="sidebar-progress-text">Выполнено задач: 0%</p>
-            <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                <div id="sidebar-progress-bar" class="bg-brand-500 h-full transition-all duration-300" style="width: 0%"></div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Мобильная шапка -->
-    <header class="md:hidden flex items-center justify-between bg-slate-900 border-b border-slate-800 px-6 py-4">
-        <div class="flex items-center gap-2">
-            <div class="p-1.5 bg-brand-500/10 text-brand-500 rounded-lg">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-            <span class="font-bold">ФокусХаб</span>
-        </div>
-        <div id="mobile-stats" class="text-xs bg-brand-500/10 text-brand-400 px-2.5 py-1 rounded-full font-medium">
-            0% выполнено
-        </div>
-    </header>
-
-    <!-- Основной контейнер содержимого -->
-    <main class="flex-1 flex flex-col overflow-y-auto pb-20 md:pb-0 h-full relative bg-slate-950">
+    <!-- Основной контейнер, стилизованный под мобильный телефон на ПК -->
+    <div class="relative w-full max-w-md h-full md:h-[850px] md:rounded-[40px] md:border-8 md:border-slate-800 bg-dark-950 flex flex-col justify-between overflow-hidden shadow-2xl">
         
-        <!-- Уведомления (Кастомный модал/Toast) -->
-        <div id="toast" class="fixed top-4 right-4 z-50 transform translate-y-[-100px] opacity-0 bg-slate-900 border border-brand-500/30 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 pointer-events-none">
-            <div class="p-1 bg-brand-500/20 text-brand-400 rounded-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <span id="toast-message" class="text-sm font-medium">Это системное сообщение</span>
+        <!-- Кастомный Тост / Всплывашка -->
+        <div id="toast" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 bg-slate-800/90 border border-gold-500/30 text-white px-4 py-2 rounded-2xl text-xs font-semibold shadow-xl transition-all duration-300 pointer-events-none flex items-center gap-2">
+            <span class="w-2 h-2 bg-gold-400 rounded-full animate-ping"></span>
+            <span id="toast-text">Успешно!</span>
         </div>
 
-        <!-- ВКЛАДКА 1: ПАНЕЛЬ УПРАВЛЕНИЯ -->
-        <section id="tab-dashboard" class="tab-content p-6 md:p-10 max-w-6xl mx-auto w-full flex flex-col gap-8">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Добро пожаловать в рабочую зону!</h2>
-                    <p class="text-slate-400 text-sm md:text-base mt-1">Отслеживайте свои фокус-сессии и управляйте ежедневными делами.</p>
-                </div>
-                <div id="current-date" class="text-sm text-slate-400 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl self-start md:self-auto">
-                    Пн, 18 мая
-                </div>
-            </div>
-
-            <!-- Сетка статистики -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
-                    <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <!-- ВЕРХНЯЯ ПАНЕЛЬ СЕО -->
+        <header class="p-4 bg-dark-900 border-b border-slate-800/60 shrink-0">
+            <!-- Выбор биржи и инфо -->
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-amber-500/20 rounded-lg flex items-center justify-center text-amber-400 border border-amber-500/30">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
                     </div>
                     <div>
-                        <span class="block text-xs text-slate-400 font-medium">Всего задач</span>
-                        <span id="stat-total-tasks" class="text-2xl font-bold">0</span>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Биржа</div>
+                        <div class="text-xs font-bold text-white">Hamster Dex (CEO)</div>
                     </div>
                 </div>
-                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
-                    <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                    <div>
-                        <span class="block text-xs text-slate-400 font-medium">Выполнено</span>
-                        <span id="stat-completed-tasks" class="text-2xl font-bold text-emerald-400">0</span>
-                    </div>
-                </div>
-                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
-                    <div class="p-3 bg-rose-500/10 text-rose-400 rounded-xl">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                    <div>
-                        <span class="block text-xs text-slate-400 font-medium">Время фокусировки</span>
-                        <span id="stat-focus-time" class="text-2xl font-bold">0 м</span>
-                    </div>
-                </div>
-                <div class="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
-                    <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </div>
-                    <div>
-                        <span class="block text-xs text-slate-400 font-medium">Сохранено заметок</span>
-                        <span id="stat-total-notes" class="text-2xl font-bold">0</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Аналитика и график -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Главный график -->
-                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-bold text-base">Активность за неделю</h3>
-                        <span class="text-xs text-slate-400">Помидоры за 7 дней</span>
-                    </div>
-                    <div class="h-64 relative">
-                        <canvas id="weeklyChart"></canvas>
-                    </div>
-                </div>
-                <!-- Быстрый таймер и мотивация -->
-                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
-                    <div>
-                        <h3 class="font-bold text-base mb-2">Мини-Помидор</h3>
-                        <p class="text-xs text-slate-400 mb-4">Начните быструю сессию фокусировки прямо отсюда.</p>
-                        
-                        <div class="flex items-center justify-center py-6">
-                            <span id="dash-timer-display" class="text-4xl font-extrabold font-mono tracking-widest text-brand-500">25:00</span>
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="switchTab('pomodoro')" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium py-2.5 rounded-xl text-sm transition-colors text-center">
-                            Перейти к таймеру
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ВКЛАДКА 2: ТРЕКЕР ЗАДАЧ -->
-        <section id="tab-tasks" class="tab-content hidden p-6 md:p-10 max-w-4xl mx-auto w-full flex flex-col gap-6">
-            <div>
-                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Ваш список задач</h2>
-                <p class="text-slate-400 text-sm mt-1">Добавляйте, структурируйте и завершайте запланированные дела.</p>
-            </div>
-
-            <!-- Панель ввода задач -->
-            <form onsubmit="handleAddTask(event)" class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row gap-3">
-                <input id="task-input" type="text" placeholder="Что нужно сделать сегодня?" required class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100 placeholder-slate-500" />
-                <div class="flex gap-2">
-                    <select id="task-category" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-300">
-                        <option value="Работа">Работа</option>
-                        <option value="Учеба">Учеба</option>
-                        <option value="Личное">Личное</option>
-                        <option value="Спорт">Спорт</option>
-                    </select>
-                    <button type="submit" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-medium px-5 py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        <span>Создать</span>
-                    </button>
-                </div>
-            </form>
-
-            <!-- Фильтры задач -->
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3 overflow-x-auto whitespace-nowrap">
-                <div class="flex gap-1.5" id="task-filters">
-                    <button onclick="filterTasks('all')" id="filter-all" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-500/15 text-brand-400">Все</button>
-                    <button onclick="filterTasks('active')" id="filter-active" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/40">В процессе</button>
-                    <button onclick="filterTasks('completed')" id="filter-completed" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/40">Выполненные</button>
-                </div>
-                <button onclick="clearCompletedTasks()" class="text-xs text-rose-400 hover:text-rose-300 transition-colors font-medium">Удалить выполненные</button>
-            </div>
-
-            <!-- Список задач -->
-            <div id="tasks-list" class="flex flex-col gap-3 min-h-[300px]">
-                <!-- Задачи генерируются динамически -->
-            </div>
-        </section>
-
-        <!-- ВКЛАДКА 3: ПОМИДОР ТАЙМЕР -->
-        <section id="tab-pomodoro" class="tab-content hidden p-6 md:p-10 max-w-4xl mx-auto w-full flex flex-col items-center justify-center gap-8 min-h-[80vh]">
-            <div class="text-center">
-                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Техника фокусировки Pomodoro</h2>
-                <p class="text-slate-400 text-sm mt-1">25 минут интенсивной работы, затем короткий восстанавливающий перерыв.</p>
-            </div>
-
-            <!-- Опции таймера -->
-            <div class="flex items-center justify-center gap-2 bg-slate-900/60 p-1.5 border border-slate-800 rounded-2xl">
-                <button onclick="setTimerType('focus')" id="type-focus" class="px-4 py-2 text-xs font-bold rounded-xl bg-brand-500 text-white transition-all">
-                    Фокус (25м)
-                </button>
-                <button onclick="setTimerType('short')" id="type-short" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-slate-100 transition-all">
-                    Короткий перерыв (5м)
-                </button>
-                <button onclick="setTimerType('long')" id="type-long" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-slate-100 transition-all">
-                    Длинный перерыв (15м)
-                </button>
-            </div>
-
-            <!-- Круговой визуализатор времени -->
-            <div class="relative w-72 h-72 md:w-80 md:h-80 flex items-center justify-center">
-                <!-- Круговой индикатор на SVG -->
-                <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" class="stroke-slate-800" stroke-width="4" fill="transparent"/>
-                    <circle id="timer-progress-ring" cx="50" cy="50" r="45" class="stroke-brand-500 transition-all duration-300" stroke-width="4" stroke-linecap="round" fill="transparent" stroke-dasharray="282.7" stroke-dashoffset="0"/>
-                </svg>
-
-                <div class="text-center z-10">
-                    <span id="timer-display" class="text-6xl md:text-7xl font-extrabold font-mono tracking-widest block text-white">25:00</span>
-                    <span id="timer-status-label" class="text-xs text-slate-400 uppercase tracking-widest font-bold mt-2 block">Готов к работе</span>
-                </div>
-            </div>
-
-            <!-- Контроллер таймера -->
-            <div class="flex items-center gap-4">
-                <button onclick="resetTimer()" class="p-4 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-2xl text-slate-300 hover:text-white transition-all active:scale-95" title="Сбросить">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/></svg>
-                </button>
-                <button onclick="toggleTimer()" id="play-pause-btn" class="px-10 py-4 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-extrabold rounded-2xl shadow-xl shadow-brand-500/10 transition-all flex items-center gap-3">
-                    <svg id="play-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    <svg id="pause-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                    <span id="btn-timer-text">Запустить</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- ВКЛАДКА 4: ЗАМЕТКИ -->
-        <section id="tab-notes" class="tab-content hidden p-6 md:p-10 max-w-5xl mx-auto w-full flex flex-col gap-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Ваш блокнот</h2>
-                    <p class="text-slate-400 text-sm mt-1">Записывайте мысли, идеи, важные инсайты и сохраняйте их здесь.</p>
-                </div>
-                <button onclick="openCreateNoteModal()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-medium px-5 py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 self-start sm:self-auto">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>Новая заметка</span>
-                </button>
-            </div>
-
-            <!-- Поиск по заметкам -->
-            <div class="relative">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </span>
-                <input id="note-search" type="text" oninput="searchNotes()" placeholder="Поиск по названию или тексту заметки..." class="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100 placeholder-slate-500" />
-            </div>
-
-            <!-- Сетка заметок -->
-            <div id="notes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[250px]">
-                <!-- Заметки генерируются динамически -->
-            </div>
-        </section>
-
-        <!-- Модалка создания/редактирования заметки -->
-        <div id="note-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
-            <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="note-modal-card">
-                <div class="p-6 border-b border-slate-800 flex items-center justify-between">
-                    <h3 id="note-modal-title" class="font-bold text-lg">Добавить новую заметку</h3>
-                    <button onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-100">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <form onsubmit="handleSaveNote(event)" class="p-6 flex flex-col gap-4">
-                    <input type="hidden" id="modal-note-id">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Заголовок</label>
-                        <input id="modal-note-title" type="text" required placeholder="Введите заголовок заметки..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Текст заметки</label>
-                        <textarea id="modal-note-content" required rows="6" placeholder="Начните писать свои потрясающие идеи..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-slate-100 resize-none"></textarea>
-                    </div>
-                    <div class="flex justify-end gap-3 mt-2">
-                        <button type="button" onclick="closeNoteModal()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-sm font-semibold transition-colors">Отмена</button>
-                        <button type="submit" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition-colors">Сохранить</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Мобильная нижняя навигация -->
-    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 py-2.5 px-6 flex justify-between items-center z-40">
-        <button onclick="switchTab('dashboard')" id="mob-nav-dashboard" class="flex flex-col items-center gap-1 text-brand-500">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
-            <span class="text-[10px] font-semibold">Главная</span>
-        </button>
-        <button onclick="switchTab('tasks')" id="mob-nav-tasks" class="flex flex-col items-center gap-1 text-slate-400">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            <span class="text-[10px] font-semibold">Задачи</span>
-        </button>
-        <button onclick="switchTab('pomodoro')" id="mob-nav-pomodoro" class="flex flex-col items-center gap-1 text-slate-400">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span class="text-[10px] font-semibold">Таймер</span>
-        </button>
-        <button onclick="switchTab('notes')" id="mob-nav-notes" class="flex flex-col items-center gap-1 text-slate-400">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            <span class="text-[10px] font-semibold">Заметки</span>
-        </button>
-    </nav>
-
-    <!-- Основной скрипт -->
-    <script>
-        // --- ДАННЫЕ / ХРАНИЛИЩЕ ПО УМОЛЧАНИЮ ---
-        let appState = {
-            tasks: [
-                { id: 1, text: 'Подготовить отчет по работе за месяц', category: 'Работа', completed: false, created: new Date() },
-                { id: 2, text: 'Повторить 20 новых иностранных слов', category: 'Учеба', completed: true, created: new Date() },
-                { id: 3, text: 'Пробежать 5 километров в парке', category: 'Спорт', completed: false, created: new Date() }
-            ],
-            notes: [
-                { id: 1, title: 'Идеи для проектов', content: '1. Веб-приложение для управления целями.\n2. Бот для автоматической отправки полезных цитат в Телеграм.\n3. Мобильный симулятор планирования времени.', date: '18 мая 2026' },
-                { id: 2, title: 'Список покупок на вечер', content: 'Молоко, бездрожжевой хлеб, спелые авокадо, оливковое масло холодного отжима, свежий базилик, помидоры черри.', date: '17 мая 2026' }
-            ],
-            stats: {
-                pomodoroCount: 0,
-                focusMinutes: 0,
-                weeklyData: [0, 2, 4, 1, 3, 5, 0] // Статистика по дням недели (Пн-Вс)
-            },
-            currentTab: 'dashboard',
-            taskFilter: 'all',
-            timer: {
-                totalSeconds: 1500, // 25 минут по дефолту
-                currentSeconds: 1500,
-                interval: null,
-                isRunning: false,
-                type: 'focus' // focus, short, long
-            }
-        };
-
-        // Запуск приложения при загрузке страницы
-        window.onload = function() {
-            initDate();
-            renderAll();
-            initChart();
-        };
-
-        // --- ИНИЦИАЛИЗАЦИЯ И ДАТА ---
-        function initDate() {
-            const options = { weekday: 'short', day: 'numeric', month: 'short' };
-            const today = new Date();
-            document.getElementById('current-date').innerText = today.toLocaleDateString('ru-RU', options);
-        }
-
-        // --- УВЕДОМЛЕНИЯ ---
-        function showNotification(message) {
-            const toast = document.getElementById('toast');
-            const msgEl = document.getElementById('toast-message');
-            msgEl.innerText = message;
-            
-            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-            
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-[-100px]', 'opacity-0');
-            }, 3000);
-        }
-
-        // --- НАВИГАЦИЯ ---
-        function switchTab(tabId) {
-            appState.currentTab = tabId;
-            
-            // Скрыть все вкладки
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-            // Показать активную вкладку
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-
-            // Обновить визуальное состояние кнопок (Десктоп)
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.className = "nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium transition-all";
-            });
-            const activeBtn = document.getElementById(`nav-${tabId}`);
-            if(activeBtn) {
-                activeBtn.className = "nav-btn flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-500 text-white font-medium transition-all";
-            }
-
-            // Обновить визуальное состояние кнопок (Мобильная)
-            document.querySelectorAll('nav.md\\:hidden button').forEach(btn => {
-                btn.classList.replace('text-brand-500', 'text-slate-400');
-            });
-            const activeMobBtn = document.getElementById(`mob-nav-${tabId}`);
-            if(activeMobBtn) {
-                activeMobBtn.classList.replace('text-slate-400', 'text-brand-500');
-            }
-        }
-
-        // --- ОТРЕНДЕРИТЬ ВСЕ ЭЛЕМЕНТЫ ---
-        function renderAll() {
-            renderTasks();
-            renderNotes();
-            updateStats();
-        }
-
-        // --- ОБНОВЛЕНИЕ СТАТИСТИКИ ---
-        function updateStats() {
-            const totalTasks = appState.tasks.length;
-            const completedTasks = appState.tasks.filter(t => t.completed).length;
-            const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-            // Обновление прогресс-баров
-            document.getElementById('sidebar-progress-text').innerText = `Выполнено задач: ${percent}%`;
-            document.getElementById('sidebar-progress-bar').style.width = `${percent}%`;
-            document.getElementById('mobile-stats').innerText = `${percent}% выполнено`;
-
-            // Обновление числовых метрик на главной панели
-            document.getElementById('stat-total-tasks').innerText = totalTasks;
-            document.getElementById('stat-completed-tasks').innerText = completedTasks;
-            document.getElementById('stat-total-notes').innerText = appState.notes.length;
-            document.getElementById('stat-focus-time').innerText = `${appState.stats.focusMinutes} м`;
-        }
-
-        // --- ЛОГИКА ЗАДАЧ (TO-DO) ---
-        function renderTasks() {
-            const listContainer = document.getElementById('tasks-list');
-            listContainer.innerHTML = '';
-
-            // Фильтрация
-            let filteredTasks = appState.tasks;
-            if (appState.taskFilter === 'active') {
-                filteredTasks = appState.tasks.filter(t => !t.completed);
-            } else if (appState.taskFilter === 'completed') {
-                filteredTasks = appState.tasks.filter(t => t.completed);
-            }
-
-            if (filteredTasks.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-10 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl">
-                        <svg class="w-12 h-12 text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0V9a2 2 0 00-2-2H6a2 2 0 00-2 2v4.586a1 1 0 01-.293.707l-2 2a1 1 0 00-.293.707V19a2 2 0 002 2h10a2 2 0 002-2v-4a1 1 0 01.293-.707l2-2a1 1 0 00.293-.707z"/></svg>
-                        <p class="text-slate-400 text-sm">В этой категории пока ничего нет.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            filteredTasks.forEach(task => {
-                const taskDiv = document.createElement('div');
-                taskDiv.className = `flex items-center justify-between p-4 bg-slate-900 border ${task.completed ? 'border-emerald-500/20 bg-slate-900/40' : 'border-slate-800'} rounded-2xl transition-all hover:border-slate-700/80 group`;
                 
-                // Категории цвета
-                let catColor = 'bg-slate-800 text-slate-300';
-                if(task.category === 'Работа') catColor = 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
-                else if(task.category === 'Учеба') catColor = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-                else if(task.category === 'Личное') catColor = 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20';
-                else if(task.category === 'Спорт') catColor = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                <div class="bg-slate-800/40 border border-slate-700/30 px-3 py-1 rounded-full text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="user-tier">Бронза (1/10)</span>
+                </div>
+            </div>
 
-                taskDiv.innerHTML = `
-                    <div class="flex items-center gap-3.5 flex-1 pr-4">
-                        <button onclick="toggleTaskCompletion(${task.id})" class="shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'border-slate-700 hover:border-brand-500'}">
-                            ${task.completed ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' : ''}
-                        </button>
-                        <div class="flex flex-col gap-1.5">
-                            <span class="text-sm md:text-base font-medium transition-all ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${catColor}">${task.category}</span>
+            <!-- Главные параметры биржи -->
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-dark-800/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wide mb-0.5">Прибыль за тап</span>
+                    <span id="stat-earn-per-tap" class="text-xs font-black text-gold-400">+1</span>
+                </div>
+                <div class="bg-dark-800/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wide mb-0.5">PPH (Прибыль в час)</span>
+                    <span id="stat-profit-per-hour" class="text-xs font-black text-emerald-400">+0</span>
+                </div>
+                <div class="bg-dark-800/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wide mb-0.5">До лиги</span>
+                    <span id="stat-next-level" class="text-xs font-black text-indigo-400">5K</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ЦЕНТРАЛЬНЫЙ КОНТЕНТ (СКРОЛЛЯЩИЙСЯ) -->
+        <div class="flex-1 overflow-y-auto pb-4 relative">
+            
+            <!-- ЭКРАН 1: ТАПЕР (ГЛАВНЫЙ) -->
+            <section id="screen-tap" class="game-screen h-full flex flex-col justify-between py-6 px-6">
+                <!-- Счётчик баланса -->
+                <div class="text-center my-2">
+                    <div class="flex items-center justify-center gap-2 mb-1">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-b from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
+                            <span class="text-xl font-black text-slate-950">$</span>
+                        </div>
+                        <span id="main-balance" class="text-4xl md:text-5xl font-black tracking-tight text-white">0</span>
+                    </div>
+                    <span class="text-xs text-slate-400 font-medium">Ваш капитал крипто-империи</span>
+                </div>
+
+                <!-- Зона тапа с хомяком -->
+                <div class="relative flex items-center justify-center my-auto min-h-[260px]">
+                    <!-- Свечение на заднем плане -->
+                    <div class="glow-bg absolute w-64 h-64 rounded-full bg-gradient-to-r from-gold-500/30 to-amber-500/10 blur-3xl -z-10"></div>
+                    
+                    <!-- Кнопка клика (Хомяк) -->
+                    <button id="hamster-trigger" class="hamster-btn focus:outline-none relative w-60 h-60 rounded-full bg-gradient-to-b from-slate-900 to-slate-800 border-[10px] border-slate-800/60 shadow-inner flex items-center justify-center">
+                        <div class="absolute inset-2 rounded-full bg-gradient-to-b from-slate-800 to-slate-900 shadow-2xl flex items-center justify-center">
+                            
+                            <!-- Нарисованный Хомяк (CEO) на SVG -->
+                            <svg class="w-44 h-44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Тело и Пиджак -->
+                                <path d="M25 75C25 60 35 55 50 55C65 55 75 60 75 75V85H25V75Z" fill="#1e293b"/>
+                                <!-- Воротничок рубашки -->
+                                <path d="M42 55L50 64L58 55H42Z" fill="#ffffff"/>
+                                <!-- Галстук -->
+                                <path d="M48 62L52 62L53 74L50 78L47 74L48 62Z" fill="#ef4444"/>
+                                
+                                <!-- Лапки -->
+                                <circle cx="30" cy="72" r="5" fill="#fbcfe8"/>
+                                <circle cx="70" cy="72" r="5" fill="#fbcfe8"/>
+                                
+                                <!-- Голова хомяка -->
+                                <ellipse cx="50" cy="38" rx="26" ry="22" fill="#d97706"/>
+                                <!-- Белые щечки -->
+                                <ellipse cx="34" cy="44" rx="10" ry="8" fill="#fef3c7"/>
+                                <ellipse cx="66" cy="44" rx="10" ry="8" fill="#fef3c7"/>
+                                
+                                <!-- Ушки -->
+                                <circle cx="28" cy="20" r="9" fill="#d97706"/>
+                                <circle cx="28" cy="20" r="5" fill="#fbcfe8"/>
+                                <circle cx="72" cy="20" r="9" fill="#d97706"/>
+                                <circle cx="72" cy="20" r="5" fill="#fbcfe8"/>
+                                
+                                <!-- Глаза -->
+                                <circle cx="40" cy="35" r="4.5" fill="#0f172a"/>
+                                <circle cx="40" cy="33.5" r="1.5" fill="#ffffff"/>
+                                <circle cx="60" cy="35" r="4.5" fill="#0f172a"/>
+                                <circle cx="60" cy="33.5" r="1.5" fill="#ffffff"/>
+                                
+                                <!-- Носик -->
+                                <polygon points="48,40 52,40 50,43" fill="#f43f5e"/>
+                                <!-- Ротик -->
+                                <path d="M46 45C48 47 52 47 54 45" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+                                
+                                <!-- Зубки хомяка -->
+                                <rect x="48.5" y="45" width="1.5" height="2" fill="#ffffff"/>
+                                <rect x="50" y="45" width="1.5" height="2" fill="#ffffff"/>
+                                
+                                <!-- Румянец -->
+                                <circle cx="31" cy="42" r="3" fill="#f43f5e" opacity="0.4"/>
+                                <circle cx="69" cy="42" r="3" fill="#f43f5e" opacity="0.4"/>
+                            </svg>
+
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Нижняя панель энергии -->
+                <div class="w-full flex flex-col gap-2 mt-auto">
+                    <div class="flex justify-between items-center text-xs font-bold">
+                        <div class="flex items-center gap-1.5 text-amber-400">
+                            <svg class="w-4 h-4 text-amber-400 fill-current animate-bounce" viewBox="0 0 24 24"><path d="M11.5 22C11.5 22 17 14 17 9.5C17 5.35786 13.6421 2 9.5 2C5.35786 2 2 5.35786 2 9.5C2 14 7.5 22 7.5 22H11.5ZM6.5 9.5C6.5 11.2 8 12.5 9.5 12.5V14C7 14 5 12 5 9.5H6.5Z"/></svg>
+                            <span>Энергия</span>
+                        </div>
+                        <span id="energy-text" class="text-slate-200">1000 / 1000</span>
+                    </div>
+                    <!-- Бар энергии -->
+                    <div class="w-full h-3 bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50 p-0.5">
+                        <div id="energy-bar" class="bg-gradient-to-r from-amber-500 to-gold-400 h-full rounded-full transition-all duration-100" style="width: 100%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ЭКРАН 2: ШАХТА / КАРТОЧКИ УЛУЧШЕНИЙ -->
+            <section id="screen-mine" class="game-screen hidden p-5 flex flex-col gap-5">
+                <div>
+                    <h2 class="text-xl font-black">Шахта улучшений</h2>
+                    <p class="text-[11px] text-slate-400">Покупайте бизнес-карточки, чтобы развивать пассивный доход в час (PPH).</p>
+                </div>
+
+                <!-- Категории карточек -->
+                <div class="flex gap-1.5 p-1 bg-dark-900 rounded-xl border border-slate-800">
+                    <button onclick="switchCardTab('pr')" id="tab-btn-pr" class="flex-1 py-2 text-[11px] font-bold rounded-lg bg-slate-800 text-white">PR и Команда</button>
+                    <button onclick="switchCardTab('markets')" id="tab-btn-markets" class="flex-1 py-2 text-[11px] font-bold rounded-lg text-slate-400">Рынки</button>
+                    <button onclick="switchCardTab('legal')" id="tab-btn-legal" class="flex-1 py-2 text-[11px] font-bold rounded-lg text-slate-400">Законы</button>
+                </div>
+
+                <!-- Контейнер для карточек -->
+                <div id="cards-container" class="grid grid-cols-2 gap-3 pb-8">
+                    <!-- Будет сгенерировано динамически -->
+                </div>
+            </section>
+
+            <!-- ЭКРАН 3: ЗАДАЧИ И НАГРАДЫ (EARN) -->
+            <section id="screen-earn" class="game-screen hidden p-5 flex flex-col gap-5">
+                <div>
+                    <h2 class="text-xl font-black">Заработок бонусов</h2>
+                    <p class="text-[11px] text-slate-400">Выполняйте простые задачи, чтобы мгновенно увеличить баланс биржи.</p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <!-- Дейли награда -->
+                    <div class="bg-gradient-to-r from-amber-500/10 to-gold-500/15 border border-gold-500/30 p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-gold-400/15 rounded-xl flex items-center justify-center text-gold-400 text-2xl">🎁</div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Ежедневная награда</h4>
+                                <span class="text-[10px] text-slate-400">+5,000 монет ежедневно</span>
                             </div>
                         </div>
+                        <button onclick="claimDailyReward()" id="daily-claim-btn" class="bg-gold-500 hover:bg-gold-600 active:scale-95 text-slate-950 text-xs font-bold py-2 px-4 rounded-xl transition-all">Забрать</button>
                     </div>
-                    <button onclick="deleteTask(${task.id})" class="text-slate-500 hover:text-rose-400 p-2 rounded-xl hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                `;
-                listContainer.appendChild(taskDiv);
+
+                    <!-- Таск 1 -->
+                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 text-xl">📺</div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Посмотреть YouTube Hamster</h4>
+                                <span class="text-[10px] text-slate-400">+10,000 монет</span>
+                            </div>
+                        </div>
+                        <button onclick="completeTask(1, 10000)" id="task-btn-1" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Выполнить</button>
+                    </div>
+
+                    <!-- Таск 2 -->
+                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 bg-sky-500/10 rounded-xl flex items-center justify-center text-sky-400 text-xl">✈️</div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Подписка на Telegram-канал</h4>
+                                <span class="text-[10px] text-slate-400">+15,000 монет</span>
+                            </div>
+                        </div>
+                        <button onclick="completeTask(2, 15000)" id="task-btn-2" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Выполнить</button>
+                    </div>
+
+                    <!-- Таск 3 -->
+                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-400 text-xl">🐦</div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Подписка на X (Twitter)</h4>
+                                <span class="text-[10px] text-slate-400">+8,000 монет</span>
+                            </div>
+                        </div>
+                        <button onclick="completeTask(3, 8000)" id="task-btn-3" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Выполнить</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ЭКРАН 4: ПРОКАЧКА (BOOSTS) -->
+            <section id="screen-boosts" class="game-screen hidden p-5 flex flex-col gap-5">
+                <div>
+                    <h2 class="text-xl font-black">Турбо Бусты</h2>
+                    <p class="text-[11px] text-slate-400">Увеличьте параметры силы клика и запаса энергии.</p>
+                </div>
+
+                <!-- Бесплатные бусты -->
+                <div class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Бесплатный буст</span>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl">⚡</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">Полная энергия</h4>
+                                <span id="full-energy-count" class="text-[10px] text-slate-400">Доступно: 3 / 3</span>
+                            </div>
+                        </div>
+                        <button onclick="applyFullEnergyBoost()" id="full-energy-btn" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all">Использовать</button>
+                    </div>
+                </div>
+
+                <!-- Платные бусты -->
+                <div class="flex flex-col gap-3">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Платные улучшения</span>
+                    
+                    <!-- Мультитап -->
+                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 text-xl">👆</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">Multitap</h4>
+                                <span id="multitap-info" class="text-[10px] text-slate-400">Ур. 1 • Стоимость: 2,000</span>
+                            </div>
+                        </div>
+                        <button onclick="buyMultitap()" class="bg-gold-500 hover:bg-gold-600 active:scale-95 text-slate-950 text-xs font-bold py-2 px-4 rounded-xl transition-all">Купить</button>
+                    </div>
+
+                    <!-- Лимит энергии -->
+                    <div class="bg-dark-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 text-xl">🔋</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">Лимит энергии</h4>
+                                <span id="energylimit-info" class="text-[10px] text-slate-400">Ур. 1 • Стоимость: 3,000</span>
+                            </div>
+                        </div>
+                        <button onclick="buyEnergyLimit()" class="bg-gold-500 hover:bg-gold-600 active:scale-95 text-slate-950 text-xs font-bold py-2 px-4 rounded-xl transition-all">Купить</button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- НИЖНЕЕ МЕНЮ НАВИГАЦИИ -->
+        <footer class="p-4 bg-dark-900 border-t border-slate-800/80 shrink-0">
+            <nav class="flex justify-between items-center gap-1">
+                <button onclick="switchScreen('tap')" id="nav-btn-tap" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-gold-400">
+                    <span class="text-lg">🐹</span>
+                    <span class="text-[9px] font-bold">Главная</span>
+                </button>
+                <button onclick="switchScreen('mine')" id="nav-btn-mine" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200">
+                    <span class="text-lg">⛏️</span>
+                    <span class="text-[9px] font-bold">Шахта (Mine)</span>
+                </button>
+                <button onclick="switchScreen('earn')" id="nav-btn-earn" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200">
+                    <span class="text-lg">💰</span>
+                    <span class="text-[9px] font-bold">Заработать</span>
+                </button>
+                <button onclick="switchScreen('boosts')" id="nav-btn-boosts" class="flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200">
+                    <span class="text-lg">⚡</span>
+                    <span class="text-[9px] font-bold">Бусты</span>
+                </button>
+            </nav>
+        </footer>
+
+    </div>
+
+    <!-- JavaScript логика -->
+    <script>
+        // Игровая база данных и состояния
+        const gameState = {
+            balance: 0,
+            earnedPerTap: 1,
+            profitPerHour: 0,
+            maxEnergy: 1000,
+            currentEnergy: 1000,
+            
+            // Бусты
+            multitapLevel: 1,
+            energyLimitLevel: 1,
+            freeFullEnergyLeft: 3,
+            
+            // Задания
+            completedTasks: [],
+            lastDailyClaimDate: null,
+
+            // Улучшения в шахте (Mine)
+            upgrades: [
+                // PR & Команда
+                { id: 1, name: 'Канал на Youtube', category: 'pr', cost: 150, pph: 15, level: 0, icon: '📺' },
+                { id: 2, name: 'SMM Менеджер', category: 'pr', cost: 500, pph: 45, level: 0, icon: '✍️' },
+                { id: 3, name: 'QA Отдел тестирования', category: 'pr', cost: 1200, pph: 110, level: 0, icon: '🐞' },
+                { id: 4, name: 'Инфлюенсер-СЕО', category: 'pr', cost: 5000, pph: 520, level: 0, icon: '👑' },
+                
+                // Рынки
+                { id: 5, name: 'Листинг USDT', category: 'markets', cost: 200, pph: 25, level: 0, icon: '💵' },
+                { id: 6, name: 'Маркет-мейкеры', category: 'markets', cost: 1000, pph: 120, level: 0, icon: '📊' },
+                { id: 7, name: 'Маржинальная торговля', category: 'markets', cost: 3500, pph: 390, level: 0, icon: '📈' },
+                { id: 8, name: 'Хедж-фонд хомяков', category: 'markets', cost: 12000, pph: 1400, level: 0, icon: '🏢' },
+
+                // Законы
+                { id: 9, name: 'Лицензия в ЕС', category: 'legal', cost: 1000, pph: 90, level: 0, icon: '🇪🇺' },
+                { id: 10, name: 'Борьба с фродом (KYC)', category: 'legal', cost: 4000, pph: 450, level: 0, icon: '🛡️' },
+                { id: 11, name: 'Комплаенс аудит', category: 'legal', cost: 9000, pph: 1000, level: 0, icon: '📑' }
+            ],
+
+            currentCardCategory: 'pr'
+        };
+
+        // Лиги СЕО хомяков
+        const tiers = [
+            { name: "Bronze", min: 0, max: 5000 },
+            { name: "Silver", min: 5000, max: 25000 },
+            { name: "Gold", min: 25000, max: 100000 },
+            { name: "Platinum", min: 100000, max: 500000 },
+            { name: "Diamond", min: 500000, max: 1500000 },
+            { name: "Grandmaster", min: 1500000, max: 5000000 },
+            { name: "Lord", min: 5000000, max: Infinity }
+        ];
+
+        // Запуск таймеров при старте
+        window.onload = function() {
+            initGame();
+            
+            // Восстановление энергии: 3 ед в секунду
+            setInterval(() => {
+                if (gameState.currentEnergy < gameState.maxEnergy) {
+                    gameState.currentEnergy = Math.min(gameState.maxEnergy, gameState.currentEnergy + 3);
+                    updateUI();
+                }
+            }, 1000);
+
+            // Начисление прибыли в час (PPH) каждые 1 секунду
+            setInterval(() => {
+                if (gameState.profitPerHour > 0) {
+                    const secondProfit = gameState.profitPerHour / 3600;
+                    gameState.balance += secondProfit;
+                    updateUI();
+                }
+            }, 1000);
+        };
+
+        function initGame() {
+            // Попробуем восстановить сессию, если бы у нас было сохранение.
+            // На данный момент всё работает в памяти.
+            updateUI();
+            renderUpgrades();
+            
+            // События для хомяка (мышка + тач на мобильном)
+            const btn = document.getElementById('hamster-trigger');
+            btn.addEventListener('mousedown', handleHamsterClick);
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Защита от зума
+                handleHamsterClick(e);
             });
         }
 
-        function handleAddTask(e) {
-            e.preventDefault();
-            const input = document.getElementById('task-input');
-            const category = document.getElementById('task-category');
-
-            const newTask = {
-                id: Date.now(),
-                text: input.value.trim(),
-                category: category.value,
-                completed: false,
-                created: new Date()
-            };
-
-            appState.tasks.unshift(newTask);
-            input.value = '';
+        // --- ТОСТЫ / УВЕДОМЛЕНИЯ ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toast-text');
+            toastText.innerText = message;
             
-            renderAll();
-            showNotification('Задача успешно создана!');
+            toast.classList.remove('opacity-0', '-translate-y-12');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-12');
+            }, 2500);
         }
 
-        function toggleTaskCompletion(taskId) {
-            const task = appState.tasks.find(t => t.id === taskId);
-            if (task) {
-                task.completed = !task.completed;
-                renderAll();
-                showNotification(task.completed ? 'Задача завершена! Молодец!' : 'Задача снова в процессе.');
+        // --- НАВИГАЦИЯ ПО ЭКРАНАМ ---
+        function switchScreen(screenId) {
+            // Скрыть все экраны
+            document.querySelectorAll('.game-screen').forEach(scr => {
+                scr.classList.add('hidden');
+            });
+            // Показать выбранный
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+
+            // Сброс и замена стилей кнопок меню
+            document.querySelectorAll('footer nav button').forEach(btn => {
+                btn.className = "flex-1 flex flex-col items-center gap-1.5 py-1 text-slate-400 hover:text-slate-200";
+            });
+            document.getElementById(`nav-btn-${screenId}`).className = "flex-1 flex flex-col items-center gap-1.5 py-1 text-gold-400";
+
+            if (screenId === 'mine') {
+                renderUpgrades();
             }
         }
 
-        function deleteTask(taskId) {
-            appState.tasks = appState.tasks.filter(t => t.id !== taskId);
-            renderAll();
-            showNotification('Задача удалена.');
-        }
-
-        function filterTasks(filterType) {
-            appState.taskFilter = filterType;
+        // --- ТАБЫ В ШАХТЕ ---
+        function switchCardTab(category) {
+            gameState.currentCardCategory = category;
             
-            // Сброс стилей на всех фильтрах
-            document.querySelectorAll('#task-filters button').forEach(btn => {
-                btn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/40";
+            document.querySelectorAll('#tab-btn-pr, #tab-btn-markets, #tab-btn-legal').forEach(btn => {
+                btn.className = "flex-1 py-2 text-[11px] font-bold rounded-lg text-slate-400";
             });
-            // Активация выбранного
-            document.getElementById(`filter-${filterType}`).className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-500/15 text-brand-400";
-            
-            renderTasks();
+            document.getElementById(`tab-btn-${category}`).className = "flex-1 py-2 text-[11px] font-bold rounded-lg bg-slate-800 text-white";
+
+            renderUpgrades();
         }
 
-        function clearCompletedTasks() {
-            const count = appState.tasks.filter(t => t.completed).length;
-            if (count === 0) {
-                showNotification('Нет выполненных задач для удаления.');
+        // --- КЛИК ПО ХОМЯКУ ---
+        function handleHamsterClick(event) {
+            // Лимит на энергию
+            if (gameState.currentEnergy < gameState.earnedPerTap) {
+                showToast("Недостаточно энергии!");
+                playBeep(120, 0.15); // Неудачный клик
                 return;
             }
-            appState.tasks = appState.tasks.filter(t => !t.completed);
-            renderAll();
-            showNotification(`Удалено завершенных задач: ${count}`);
-        }
 
+            // Вычитаем энергию и начисляем монеты
+            gameState.currentEnergy -= gameState.earnedPerTap;
+            gameState.balance += gameState.earnedPerTap;
 
-        // --- ЛОГИКА ТАЙМЕРА POMODORO ---
-        function setTimerType(type) {
-            // Изменение режима таймера
-            appState.timer.type = type;
-            if(appState.timer.isRunning) {
-                clearInterval(appState.timer.interval);
-                appState.timer.isRunning = false;
-            }
+            playBeep(330, 0.05); // Звук тапа (сгенерирован через аудиоконтекст)
 
-            if (type === 'focus') {
-                appState.timer.totalSeconds = 1500; // 25м
-                document.getElementById('timer-status-label').innerText = 'Время сфокусироваться';
-            } else if (type === 'short') {
-                appState.timer.totalSeconds = 300; // 5м
-                document.getElementById('timer-status-label').innerText = 'Короткий отдых';
-            } else if (type === 'long') {
-                appState.timer.totalSeconds = 900; // 15м
-                document.getElementById('timer-status-label').innerText = 'Глубокий отдых';
-            }
-
-            appState.timer.currentSeconds = appState.timer.totalSeconds;
+            // Эффект взлетающих цифр
+            createClickParticle(event);
             
-            // Смена активного класса
-            document.querySelectorAll('#type-focus, #type-short, #type-long').forEach(btn => {
-                btn.className = "px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-slate-100 transition-all";
-            });
-            document.getElementById(`type-${type}`).className = "px-4 py-2 text-xs font-bold rounded-xl bg-brand-500 text-white transition-all";
-
-            updateTimerUI();
+            updateUI();
         }
 
-        function toggleTimer() {
-            if (appState.timer.isRunning) {
-                // Пауза
-                clearInterval(appState.timer.interval);
-                appState.timer.isRunning = false;
-                showNotification('Таймер на паузе');
+        function createClickParticle(event) {
+            const hamsterBtn = document.getElementById('hamster-trigger');
+            const rect = hamsterBtn.getBoundingClientRect();
+            
+            let clientX, clientY;
+            if (event.touches && event.touches[0]) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
             } else {
-                // Запуск
-                appState.timer.isRunning = true;
-                appState.timer.interval = setInterval(timerTick, 1000);
-                showNotification('Концентрация началась!');
+                clientX = event.clientX;
+                clientY = event.clientY;
             }
-            updateTimerUI();
+
+            // Позиционируем элемент внутри тапера
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            const particle = document.createElement('span');
+            particle.className = "click-particle text-2xl font-black text-white drop-shadow-lg";
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            particle.innerText = `+${gameState.earnedPerTap}`;
+
+            // Позиционируем относительно кнопки
+            hamsterBtn.appendChild(particle);
+
+            // Удаляем через секунду после завершения анимации
+            setTimeout(() => {
+                particle.remove();
+            }, 800);
         }
 
-        function timerTick() {
-            if (appState.timer.currentSeconds > 0) {
-                appState.timer.currentSeconds--;
-                updateTimerUI();
-            } else {
-                // Время вышло
-                clearInterval(appState.timer.interval);
-                appState.timer.isRunning = false;
+        // --- ГЕНЕРАЦИЯ И ПОКУПКА КАРТОЧЕК ---
+        function renderUpgrades() {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            const categoryCards = gameState.upgrades.filter(card => card.category === gameState.currentCardCategory);
+
+            categoryCards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = "bg-dark-900 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between hover:border-slate-700/80 transition-all";
                 
-                playBeep(); // Звуковой сигнал на завершение
+                // Калькулятор повышения цены (с каждым уровнем +50%)
+                const currentCost = Math.round(card.cost * Math.pow(1.5, card.level));
+                const currentPPH = Math.round(card.pph * Math.pow(1.2, card.level));
 
-                if (appState.timer.type === 'focus') {
-                    appState.stats.focusMinutes += Math.round(appState.timer.totalSeconds / 60);
-                    appState.stats.pomodoroCount++;
-                    // Добавление в сегодняшний день для графика
-                    const day = new Date().getDay(); // 0 (Вс) - 6 (Сб)
-                    const index = day === 0 ? 6 : day - 1; // Превращаем в индекс 0-6 (Пн-Вс)
-                    appState.stats.weeklyData[index]++;
-                    updateChart();
+                cardEl.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-2xl">${card.icon}</span>
+                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">ур. ${card.level}</span>
+                        </div>
+                        <h4 class="text-xs font-black text-white line-clamp-1 mb-1">${card.name}</h4>
+                        <div class="flex items-center gap-1 mb-3">
+                            <span class="text-[9px] text-slate-400">PPH:</span>
+                            <span class="text-[10px] text-emerald-400 font-extrabold">+${formatNumber(currentPPH)}/ч</span>
+                        </div>
+                    </div>
+                    <button onclick="buyUpgrade(${card.id})" class="w-full bg-slate-800 hover:bg-gold-500 hover:text-slate-950 active:scale-95 text-white font-bold py-2 px-1 rounded-xl text-[11px] transition-all flex items-center justify-center gap-1">
+                        <span>💰</span>
+                        <span>${formatNumber(currentCost)}</span>
+                    </button>
+                `;
+                container.appendChild(cardEl);
+            });
+        }
 
-                    showNotification('Прекрасно! Фокус-сессия окончена. Время немного отдохнуть!');
-                    setTimerType('short');
-                } else {
-                    showNotification('Перерыв окончен! Готовы поработать еще?');
-                    setTimerType('focus');
-                }
-                updateTimerUI();
+        function buyUpgrade(id) {
+            const card = gameState.upgrades.find(c => c.id === id);
+            if (!card) return;
+
+            const cost = Math.round(card.cost * Math.pow(1.5, card.level));
+            const pphAdded = Math.round(card.pph * Math.pow(1.2, card.level));
+
+            if (gameState.balance < cost) {
+                showToast("Недостаточно монет для расширения бизнеса!");
+                playBeep(120, 0.2); // Ошибка
+                return;
             }
+
+            gameState.balance -= cost;
+            gameState.profitPerHour += pphAdded;
+            card.level += 1;
+
+            playBeep(523.25, 0.1); // Радостный клик
+            setTimeout(() => playBeep(659.25, 0.1), 80);
+
+            showToast(`Успешно куплено: "${card.name}"!`);
+            renderUpgrades();
+            updateUI();
         }
 
-        function resetTimer() {
-            clearInterval(appState.timer.interval);
-            appState.timer.isRunning = false;
-            appState.timer.currentSeconds = appState.timer.totalSeconds;
-            updateTimerUI();
-            showNotification('Таймер сброшен');
+        // --- КЛИКАБЕЛЬНЫЕ БУСТЫ ---
+        function buyMultitap() {
+            const cost = 2000 * Math.pow(2.2, gameState.multitapLevel - 1);
+            if (gameState.balance < cost) {
+                showToast("Недостаточно монет!");
+                playBeep(120, 0.2);
+                return;
+            }
+
+            gameState.balance -= cost;
+            gameState.multitapLevel += 1;
+            gameState.earnedPerTap = gameState.multitapLevel;
+            
+            playBeep(440, 0.08);
+            setTimeout(() => playBeep(554, 0.08), 80);
+            
+            showToast(`Клик прокачан до Ур. ${gameState.multitapLevel}!`);
+            updateUI();
         }
 
-        function updateTimerUI() {
-            const minutes = Math.floor(appState.timer.currentSeconds / 60);
-            const seconds = appState.timer.currentSeconds % 60;
-            const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        function buyEnergyLimit() {
+            const cost = 3000 * Math.pow(2, gameState.energyLimitLevel - 1);
+            if (gameState.balance < cost) {
+                showToast("Недостаточно монет!");
+                playBeep(120, 0.2);
+                return;
+            }
 
-            // Обновление цифр
-            document.getElementById('timer-display').innerText = formattedTime;
-            document.getElementById('dash-timer-display').innerText = formattedTime;
+            gameState.balance -= cost;
+            gameState.energyLimitLevel += 1;
+            gameState.maxEnergy = 1000 + (gameState.energyLimitLevel - 1) * 500;
+            gameState.currentEnergy = gameState.maxEnergy;
 
-            // Обновление SVG кольца
-            const ring = document.getElementById('timer-progress-ring');
-            const circumference = 2 * Math.PI * 45; // 282.7
-            const percentRemaining = appState.timer.currentSeconds / appState.timer.totalSeconds;
-            const strokeDashoffset = circumference * (1 - percentRemaining);
-            ring.style.strokeDashoffset = strokeDashoffset;
+            playBeep(440, 0.08);
+            setTimeout(() => playBeep(659, 0.08), 80);
 
-            // Обновление кнопки пуск/пауза
-            const playIcon = document.getElementById('play-icon');
-            const pauseIcon = document.getElementById('pause-icon');
-            const btnText = document.getElementById('btn-timer-text');
+            showToast(`Энергия увеличена до ${gameState.maxEnergy}!`);
+            updateUI();
+        }
 
-            if (appState.timer.isRunning) {
-                playIcon.classList.add('hidden');
-                pauseIcon.classList.remove('hidden');
-                btnText.innerText = 'Пауза';
+        function applyFullEnergyBoost() {
+            if (gameState.freeFullEnergyLeft <= 0) {
+                showToast("Все бесплатные бусты на сегодня использованы!");
+                return;
+            }
+
+            gameState.currentEnergy = gameState.maxEnergy;
+            gameState.freeFullEnergyLeft -= 1;
+            
+            playBeep(587.33, 0.15);
+            showToast("Энергия полностью восстановлена!");
+            updateUI();
+        }
+
+        // --- СИСТЕМА ЗАДАНИЙ И НАГРАД (EARN) ---
+        function claimDailyReward() {
+            const today = new Date().toDateString();
+            if (gameState.lastDailyClaimDate === today) {
+                showToast("Награда уже получена сегодня!");
+                return;
+            }
+
+            gameState.balance += 5000;
+            gameState.lastDailyClaimDate = today;
+            
+            playBeep(523.25, 0.1);
+            setTimeout(() => playBeep(659.25, 0.1), 80);
+            setTimeout(() => playBeep(783.99, 0.15), 160);
+
+            showToast("+5,000 монет зачислено!");
+            updateUI();
+        }
+
+        function completeTask(id, reward) {
+            if (gameState.completedTasks.includes(id)) {
+                showToast("Вы уже выполнили это задание!");
+                return;
+            }
+
+            gameState.balance += reward;
+            gameState.completedTasks.push(id);
+            
+            // Фиксация в UI
+            const btn = document.getElementById(`task-btn-${id}`);
+            btn.className = "bg-emerald-500/20 text-emerald-400 text-xs font-bold py-2 px-4 rounded-xl pointer-events-none";
+            btn.innerText = "Выполнено ✅";
+
+            playBeep(523.25, 0.1);
+            setTimeout(() => playBeep(659.25, 0.15), 100);
+
+            showToast(`Задание выполнено! +${formatNumber(reward)} монет`);
+            updateUI();
+        }
+
+        // --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+        function updateUI() {
+            // Округление баланса для красивого вывода
+            const roundedBalance = Math.floor(gameState.balance);
+            document.getElementById('main-balance').innerText = formatNumber(roundedBalance);
+            
+            // Расчет лиги / ранга
+            const currentTier = tiers.find(t => roundedBalance >= t.min && roundedBalance < t.max) || tiers[0];
+            const tierIndex = tiers.indexOf(currentTier) + 1;
+            document.getElementById('user-tier').innerText = `${currentTier.name} (${tierIndex}/${tiers.length})`;
+            
+            // Метрики верхней панели
+            document.getElementById('stat-earn-per-tap').innerText = `+${gameState.earnedPerTap}`;
+            document.getElementById('stat-profit-per-hour').innerText = `+${formatNumber(gameState.profitPerHour)}`;
+            
+            // Калькуляция следующего уровня
+            if (currentTier.max !== Infinity) {
+                document.getElementById('stat-next-level').innerText = formatNumber(currentTier.max);
             } else {
-                playIcon.classList.remove('hidden');
-                pauseIcon.classList.add('hidden');
-                btnText.innerText = 'Продолжить';
+                document.getElementById('stat-next-level').innerText = "MAX";
             }
 
-            updateStats();
+            // Шкала энергии
+            document.getElementById('energy-text').innerText = `${Math.floor(gameState.currentEnergy)} / ${gameState.maxEnergy}`;
+            const energyPercent = (gameState.currentEnergy / gameState.maxEnergy) * 100;
+            document.getElementById('energy-bar').style.width = `${energyPercent}%`;
+
+            // Тексты в разделе "Бусты"
+            const nextMultitapCost = 2000 * Math.pow(2.2, gameState.multitapLevel - 1);
+            document.getElementById('multitap-info').innerText = `Ур. ${gameState.multitapLevel} • Стоимость: ${formatNumber(Math.round(nextMultitapCost))}`;
+            
+            const nextEnergyLimitCost = 3000 * Math.pow(2, gameState.energyLimitLevel - 1);
+            document.getElementById('energylimit-info').innerText = `Ур. ${gameState.energyLimitLevel} • Стоимость: ${formatNumber(Math.round(nextEnergyLimitCost))}`;
+
+            document.getElementById('full-energy-count').innerText = `Доступно: ${gameState.freeFullEnergyLeft} / 3`;
+            if (gameState.freeFullEnergyLeft <= 0) {
+                document.getElementById('full-energy-btn').className = "bg-slate-900 text-slate-600 border border-slate-800 text-xs font-bold py-2 px-4 rounded-xl cursor-not-allowed";
+            }
         }
 
-        // Синтез звукового сигнала с помощью Web Audio API
-        function playBeep() {
+        // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            }
+            return num.toString();
+        }
+
+        // Синтез звуков (клики, монетки) через Web Audio API
+        function playBeep(freq, duration) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
 
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Ре (D5)
-                oscillator.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.15); // Ля (A5)
+                oscillator.type = 'triangle'; // Более мягкий ретро-звук
+                oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
                 
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
 
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
 
                 oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.6);
+                oscillator.stop(audioCtx.currentTime + duration);
             } catch (e) {
-                console.log('Браузер блокирует аудио до первого клика.');
-            }
-        }
-
-
-        // --- ЛОГИКА ЗАМЕТОК ---
-        function renderNotes(filteredNotes = appState.notes) {
-            const grid = document.getElementById('notes-grid');
-            grid.innerHTML = '';
-
-            if(filteredNotes.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full flex flex-col items-center justify-center py-10 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl">
-                        <svg class="w-12 h-12 text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        <p class="text-slate-400 text-sm">У вас еще нет заметок. Начните добавлять свои первые мысли!</p>
-                    </div>
-                `;
-                return;
-            }
-
-            filteredNotes.forEach(note => {
-                const card = document.createElement('div');
-                card.className = "bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-slate-700 transition-all group h-64";
-                
-                // Экранирование для корректного переноса текста в UI
-                const safeContent = note.content.replace(/\n/g, '<br>');
-
-                card.innerHTML = `
-                    <div class="overflow-hidden">
-                        <div class="flex items-start justify-between gap-3 mb-2">
-                            <h4 class="font-bold text-slate-200 line-clamp-1">${note.title}</h4>
-                            <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="openEditNoteModal(${note.id})" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800" title="Редактировать">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                </button>
-                                <button onclick="deleteNote(${note.id})" class="text-slate-400 hover:text-rose-400 p-1 rounded-lg hover:bg-rose-500/10" title="Удалить">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-sm text-slate-400 line-clamp-6 leading-relaxed">${safeContent}</p>
-                    </div>
-                    <div class="pt-3 border-t border-slate-800/60 mt-4 flex items-center justify-between">
-                        <span class="text-[10px] text-slate-500 font-medium">${note.date}</span>
-                        <button onclick="copyNoteContent('${note.id}')" class="text-xs text-brand-400 hover:text-brand-300 font-bold transition-all flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-                            Копировать
-                        </button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function searchNotes() {
-            const query = document.getElementById('note-search').value.toLowerCase().trim();
-            if (!query) {
-                renderNotes();
-                return;
-            }
-            const filtered = appState.notes.filter(note => 
-                note.title.toLowerCase().includes(query) || 
-                note.content.toLowerCase().includes(query)
-            );
-            renderNotes(filtered);
-        }
-
-        function deleteNote(id) {
-            appState.notes = appState.notes.filter(n => n.id !== id);
-            renderAll();
-            showNotification('Заметка удалена.');
-        }
-
-        function copyNoteContent(id) {
-            const note = appState.notes.find(n => n.id == id);
-            if (note) {
-                // Имитация записи в буфер обмена для совместимости
-                const tempInput = document.createElement('textarea');
-                tempInput.value = note.content;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-                showNotification('Заметка скопирована в буфер обмена!');
-            }
-        }
-
-        // --- МОДАЛЬНОЕ ОКНО ЗАМЕТОК ---
-        function openCreateNoteModal() {
-            document.getElementById('modal-note-id').value = '';
-            document.getElementById('modal-note-title').value = '';
-            document.getElementById('modal-note-content').value = '';
-            document.getElementById('note-modal-title').innerText = 'Создать новую заметку';
-            
-            toggleModal(true);
-        }
-
-        function openEditNoteModal(id) {
-            const note = appState.notes.find(n => n.id === id);
-            if(note) {
-                document.getElementById('modal-note-id').value = note.id;
-                document.getElementById('modal-note-title').value = note.title;
-                document.getElementById('modal-note-content').value = note.content;
-                document.getElementById('note-modal-title').innerText = 'Редактировать заметку';
-                
-                toggleModal(true);
-            }
-        }
-
-        function closeNoteModal() {
-            toggleModal(false);
-        }
-
-        function toggleModal(show) {
-            const modal = document.getElementById('note-modal');
-            const card = document.getElementById('note-modal-card');
-            
-            if (show) {
-                modal.classList.remove('pointer-events-none', 'opacity-0');
-                modal.classList.add('opacity-100');
-                card.classList.remove('scale-95');
-                card.classList.add('scale-100');
-            } else {
-                modal.classList.add('pointer-events-none', 'opacity-0');
-                modal.classList.remove('opacity-100');
-                card.classList.add('scale-95');
-                card.classList.remove('scale-100');
-            }
-        }
-
-        function handleSaveNote(e) {
-            e.preventDefault();
-            const id = document.getElementById('modal-note-id').value;
-            const title = document.getElementById('modal-note-title').value.trim();
-            const content = document.getElementById('modal-note-content').value.trim();
-            
-            const options = { day: 'numeric', month: 'short', year: 'numeric' };
-            const formattedDate = new Date().toLocaleDateString('ru-RU', options);
-
-            if (id) {
-                // Редактирование существующей
-                const note = appState.notes.find(n => n.id == id);
-                if (note) {
-                    note.title = title;
-                    note.content = content;
-                    note.date = formattedDate;
-                    showNotification('Заметка успешно обновлена!');
-                }
-            } else {
-                // Создание новой
-                const newNote = {
-                    id: Date.now(),
-                    title,
-                    content,
-                    date: formattedDate
-                };
-                appState.notes.unshift(newNote);
-                showNotification('Заметка добавлена!');
-            }
-
-            closeNoteModal();
-            renderAll();
-        }
-
-
-        // --- ИНТЕГРАЦИЯ ИНИЦИАЛИЗАЦИИ ГРАФИКОВ ---
-        let weeklyChartInstance = null;
-
-        function initChart() {
-            const ctx = document.getElementById('weeklyChart').getContext('2d');
-            
-            // Настройка стилей графика под нашу тему
-            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
-
-            const data = {
-                labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-                datasets: [{
-                    label: 'Завершенные помидоры',
-                    data: appState.stats.weeklyData,
-                    borderColor: '#6366f1',
-                    borderWidth: 3,
-                    backgroundColor: gradient,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#6366f1',
-                    pointHoverRadius: 6
-                }]
-            };
-
-            const config = {
-                type: 'line',
-                data: data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#94a3b8',
-                                font: {
-                                    weight: 'bold'
-                                }
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: 'rgba(51, 65, 85, 0.3)'
-                            },
-                            ticks: {
-                                precision: 0,
-                                color: '#94a3b8'
-                            },
-                            min: 0
-                        }
-                    }
-                }
-            };
-
-            weeklyChartInstance = new Chart(ctx, config);
-        }
-
-        function updateChart() {
-            if (weeklyChartInstance) {
-                weeklyChartInstance.data.datasets[0].data = appState.stats.weeklyData;
-                weeklyChartInstance.update();
+                // Браузер может временно заблокировать аудио до первого взаимодействия.
             }
         }
     </script>
