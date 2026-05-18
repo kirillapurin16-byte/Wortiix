@@ -1,25 +1,25 @@
 
 <!DOCTYPE html>
-<html lang="ru" class="h-full bg-[#090b0e] text-slate-100 select-none">
+<html lang="ru" class="h-full bg-slate-950 text-slate-100 select-none">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hamster Kombat - Точная Копия</title>
-    <!-- Подключение Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VPN Client - Free Cloud Tunnel</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        hk: {
-                            bg: '#0e1013',
-                            panel: '#1c1f24',
-                            border: '#2e323a',
-                            gold: '#f3ba2f',
-                            textMuted: '#8b8e96',
-                            green: '#4ade80',
-                            red: '#ef4444'
+                        vpn: {
+                            bg: '#08090b',
+                            panel: '#0f1115',
+                            border: '#1f242e',
+                            cyan: '#00e5ff',
+                            blue: '#1a73e8',
+                            red: '#ff1744',
+                            textMuted: '#64748b'
                         }
                     }
                 }
@@ -27,1363 +27,376 @@
         }
     </script>
     <style>
-        /* Отключение стандартного поведения выделения и зума на iOS */
         * {
             -webkit-tap-highlight-color: transparent;
             user-select: none;
-            -webkit-user-select: none;
             outline: none;
         }
-        
-        /* Стилизация скроллбара под стиль Telegram WebApp */
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0e1013;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2e323a;
-            border-radius: 10px;
-        }
 
-        /* Анимация летящих цифр монет при тапе */
-        @keyframes coinFloat {
-            0% {
-                opacity: 1;
-                transform: translateY(0) scale(1) rotate(0deg);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-130px) scale(0.7) rotate(-10deg);
-            }
+        /* Анимация пульсации кольца при подключении */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.2; }
+            100% { transform: scale(1.25); opacity: 0; }
         }
-        .tap-coin-particle {
+        .pulse-element {
             position: absolute;
-            animation: coinFloat 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-            pointer-events: none;
-            z-index: 50;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
         }
 
-        /* Тряска при ошибках */
-        @keyframes errorShake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-8px); }
-            40%, 80% { transform: translateX(8px); }
+        .log-scroll::-webkit-scrollbar {
+            width: 3px;
         }
-        .shake-element {
-            animation: errorShake 0.3s ease-in-out;
-        }
-
-        /* Эффект свечения */
-        .gold-radial-glow {
-            background: radial-gradient(circle, rgba(243,186,47,0.15) 0%, rgba(14,16,19,0) 70%);
-        }
-        .red-radial-glow {
-            background: radial-gradient(circle, rgba(239,68,68,0.2) 0%, rgba(14,16,19,0) 70%);
+        .log-scroll::-webkit-scrollbar-thumb {
+            background: #1f242e;
+            border-radius: 2px;
         }
     </style>
 </head>
-<body class="h-full flex justify-center items-center bg-neutral-950 overflow-hidden font-sans">
+<body class="h-full flex justify-center items-center bg-[#030405] overflow-hidden font-mono">
 
-    <!-- Главная рамка смартфона для ПК, на мобильных во весь экран -->
-    <div class="relative w-full max-w-md h-full md:h-[880px] md:rounded-[48px] md:border-[12px] md:border-hk-border bg-hk-bg flex flex-col justify-between overflow-hidden shadow-2xl">
+    <div class="relative w-full max-w-md h-full md:h-[850px] md:rounded-[32px] md:border-4 md:border-vpn-border bg-vpn-bg flex flex-col justify-between overflow-hidden shadow-2xl p-6">
         
-        <!-- ================= ШАПКА ПРИЛОЖЕНИЯ ================= -->
-        <header class="p-4 pb-2 bg-gradient-to-b from-black/80 to-hk-bg border-b border-hk-border/30 shrink-0 z-30">
-            <!-- Выбор биржи и Лига -->
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2.5 cursor-pointer active:scale-95 transition-transform" onclick="openModal('exchange-modal')">
-                    <div class="w-8 h-8 rounded-lg bg-hk-panel border border-hk-border flex items-center justify-center text-lg shadow-inner" id="selected-exchange-icon">
-                        🔶
-                    </div>
-                    <div>
-                        <div class="text-[9px] text-hk-textMuted font-bold uppercase tracking-widest leading-none">Биржа</div>
-                        <div class="text-xs font-black text-white flex items-center gap-1 mt-0.5">
-                            <span id="selected-exchange-name">Binance</span>
-                            <svg class="w-3.5 h-3.5 text-hk-textMuted" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-1.5 bg-hk-panel/80 border border-hk-border/50 px-3 py-1 rounded-full text-[10px] font-black tracking-wide text-white">
-                    <span class="w-2 h-2 rounded-full bg-hk-gold animate-pulse"></span>
-                    <span id="league-name">Bronze</span>
+        <!-- Шапка -->
+        <header class="flex items-center justify-between border-b border-vpn-border/40 pb-4">
+            <div>
+                <h1 class="text-xs font-black tracking-widest text-vpn-textMuted uppercase">FREE CLOUD VPN</h1>
+                <div class="flex items-center gap-1.5 mt-1">
+                    <span id="status-indicator" class="w-1.5 h-1.5 rounded-full bg-vpn-red"></span>
+                    <span id="status-text" class="text-[10px] font-bold uppercase text-vpn-red">DISCONNECTED</span>
                 </div>
             </div>
-
-            <!-- Три основных показателя комбата -->
-            <div class="grid grid-cols-3 gap-2">
-                <!-- За тап -->
-                <div onclick="triggerCipherCheat()" class="bg-hk-panel border border-hk-border p-2 rounded-xl text-center cursor-pointer active:scale-95 transition-all">
-                    <span class="block text-[8px] text-hk-textMuted font-bold uppercase tracking-wider">Прибыль за тап</span>
-                    <div class="flex items-center justify-center gap-1 mt-0.5">
-                        <span class="text-hk-gold text-xs">🪙</span>
-                        <span id="stat-earn-tap" class="text-xs font-black text-white">+1</span>
-                    </div>
-                </div>
-                <!-- До апа -->
-                <div class="bg-hk-panel border border-hk-border p-2 rounded-xl text-center">
-                    <span class="block text-[8px] text-hk-textMuted font-bold uppercase tracking-wider">Для апа уровня</span>
-                    <div class="flex items-center justify-center gap-1 mt-0.5">
-                        <span id="stat-up-limit" class="text-xs font-black text-amber-500">5K</span>
-                    </div>
-                </div>
-                <!-- Прибыль в час -->
-                <div class="bg-hk-panel border border-hk-border p-2 rounded-xl text-center">
-                    <span class="block text-[8px] text-hk-textMuted font-bold uppercase tracking-wider">Прибыль в час</span>
-                    <div class="flex items-center justify-center gap-1 mt-0.5 text-hk-green">
-                        <span class="text-xs">📈</span>
-                        <span id="stat-pph" class="text-xs font-black">+0</span>
-                    </div>
-                </div>
+            
+            <!-- Статус сервера -->
+            <div class="bg-vpn-panel border border-vpn-border px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span class="text-[9px] font-black uppercase tracking-wider text-white" id="location-text">US WEST</span>
             </div>
         </header>
 
-        <!-- ================= ИГРОВОЙ КОНТЕНТ (СКРОЛЛ) ================= -->
-        <main class="flex-1 overflow-y-auto relative bg-[#0b0d10] pb-20">
-
-            <!-- Вкладка 1: EXCHANGE (КЛИКЕР) -->
-            <section id="tab-exchange" class="tab-view h-full flex flex-col justify-between p-4 gap-4">
-                
-                <!-- Бонусные квесты: Combo, Cipher, Mini-Game -->
-                <div class="grid grid-cols-3 gap-2">
-                    <!-- Daily Combo -->
-                    <div onclick="switchView('mine')" class="bg-gradient-to-b from-[#2a2d34] to-hk-panel border border-hk-border/80 p-2.5 rounded-2xl flex flex-col justify-between h-20 cursor-pointer active:scale-95 transition-all">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] font-black uppercase text-slate-300">Daily Combo</span>
-                            <span class="w-2 h-2 rounded-full bg-hk-gold" id="combo-status-led"></span>
-                        </div>
-                        <div class="flex gap-1.5 justify-center mt-1">
-                            <div id="combo-cell-1" class="w-6 h-6 rounded-md bg-hk-bg border border-hk-border flex items-center justify-center text-xs">❓</div>
-                            <div id="combo-cell-2" class="w-6 h-6 rounded-md bg-hk-bg border border-hk-border flex items-center justify-center text-xs">❓</div>
-                            <div id="combo-cell-3" class="w-6 h-6 rounded-md bg-hk-bg border border-hk-border flex items-center justify-center text-xs">❓</div>
-                        </div>
-                    </div>
-
-                    <!-- Daily Cipher -->
-                    <div onclick="openModal('cipher-modal')" class="bg-gradient-to-b from-[#2a2d34] to-hk-panel border border-hk-border/80 p-2.5 rounded-2xl flex flex-col justify-between h-20 cursor-pointer active:scale-95 transition-all">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] font-black uppercase text-slate-300">Daily Cipher</span>
-                            <span id="cipher-status-badge" class="text-[8px] text-hk-gold font-bold bg-hk-gold/10 px-1.5 py-0.5 rounded-full">1M 🪙</span>
-                        </div>
-                        <div class="text-center text-[11px] font-black py-0.5 tracking-wider text-hk-red" id="cipher-text-indicator">
-                            🔒 ШИФР
-                        </div>
-                    </div>
-
-                    <!-- Mini-Game -->
-                    <div onclick="openMiniGame()" class="bg-gradient-to-b from-[#2a2d34] to-hk-panel border border-hk-border/80 p-2.5 rounded-2xl flex flex-col justify-between h-20 cursor-pointer active:scale-95 transition-all">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] font-black uppercase text-slate-300">Mini-Game</span>
-                            <span class="text-[8px] text-hk-green font-bold">Ключ 🔑</span>
-                        </div>
-                        <div class="text-center text-xs font-bold text-slate-200 py-1 flex items-center justify-center gap-1">
-                            ИГРАТЬ 🎮
-                        </div>
-                    </div>
+        <!-- Выбор прокси-движка -->
+        <div class="bg-vpn-panel/50 border border-vpn-border p-3 rounded-xl mt-2">
+            <label class="block text-[8px] text-vpn-textMuted font-bold uppercase tracking-wider mb-2">Настройка прокси-сервера</label>
+            <div class="flex flex-col gap-2">
+                <div class="flex gap-2">
+                    <button onclick="setProxyType('public')" id="btn-proxy-public" class="flex-1 py-1 text-[9px] font-bold rounded bg-vpn-border text-white uppercase">Публичный (Демо)</button>
+                    <button onclick="setProxyType('private')" id="btn-proxy-private" class="flex-1 py-1 text-[9px] font-bold rounded text-vpn-textMuted uppercase">Свой Cloudflare</button>
                 </div>
-
-                <!-- Баланс и Монета -->
-                <div class="text-center my-3">
-                    <div class="flex items-center justify-center gap-2.5 mb-1">
-                        <!-- Золотая Монета -->
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-b from-hk-gold to-amber-600 flex items-center justify-center shadow-lg shadow-hk-gold/20 select-none">
-                            <span class="text-2xl font-black text-slate-950">$</span>
-                        </div>
-                        <span id="balance-display" class="text-4xl md:text-5xl font-black tracking-tight text-white">0</span>
-                    </div>
-                    <p class="text-[10px] text-hk-textMuted font-bold uppercase tracking-wider">Текущий капитал биржи</p>
-                </div>
-
-                <!-- Интерактивная область Тапера Хомяка -->
-                <div class="relative flex items-center justify-center my-auto min-h-[250px]">
-                    <!-- Свечение за хомяком (изменяет цвет при шифре) -->
-                    <div id="hamster-glow" class="absolute w-72 h-72 rounded-full gold-radial-glow -z-10 transition-all duration-500"></div>
-
-                    <!-- Сама кнопка тапа с физикой сжатия -->
-                    <div id="hamster-tap-button" class="relative w-64 h-64 rounded-full bg-gradient-to-b from-hk-border to-hk-bg border-[10px] border-hk-border/60 shadow-2xl flex items-center justify-center cursor-pointer transition-transform duration-75 active:scale-95">
-                        <div class="absolute inset-2 rounded-full bg-gradient-to-b from-[#23262d] to-hk-bg flex items-center justify-center overflow-hidden shadow-inner">
-                            
-                            <!-- SVG хомяк-СЕО в пиджаке -->
-                            <svg class="w-48 h-48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <!-- Ушки -->
-                                <circle cx="28" cy="22" r="10" fill="#d97706"/>
-                                <circle cx="28" cy="22" r="6" fill="#fbcfe8"/>
-                                <circle cx="72" cy="22" r="10" fill="#d97706"/>
-                                <circle cx="72" cy="22" r="6" fill="#fbcfe8"/>
-                                <!-- Костюм СЕО -->
-                                <path d="M22 80C22 62 32 56 50 56C68 56 78 62 78 80V90H22V80Z" fill="#1e293b"/>
-                                <path d="M42 56L50 66L58 56H42Z" fill="#ffffff"/>
-                                <path d="M48 64H52V76H48V64Z" fill="#ef4444"/>
-                                <!-- Голова -->
-                                <ellipse cx="50" cy="40" rx="26" ry="22" fill="#d97706"/>
-                                <ellipse cx="32" cy="46" rx="10" ry="8" fill="#fef3c7"/>
-                                <ellipse cx="68" cy="46" rx="10" ry="8" fill="#fef3c7"/>
-                                <!-- Глаза -->
-                                <circle cx="40" cy="36" r="4.5" fill="#0f172a"/>
-                                <circle cx="40" cy="34.5" r="1.5" fill="#ffffff"/>
-                                <circle cx="60" cy="36" r="4.5" fill="#0f172a"/>
-                                <circle cx="60" cy="34.5" r="1.5" fill="#ffffff"/>
-                                <!-- Носик -->
-                                <polygon points="48,42 52,42 50,45" fill="#f43f5e"/>
-                                <path d="M46 47C48 49 52 49 54 47" stroke="#0f172a" stroke-width="1.5"/>
-                            </svg>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Индикатор энергии и Уровня лиги -->
-                <div class="w-full flex flex-col gap-2 mt-auto">
-                    <!-- Уровень -->
-                    <div class="flex justify-between items-center text-[10px] font-black text-hk-textMuted uppercase tracking-wider">
-                        <span id="league-level-indicator">Уровень 1/10</span>
-                        <span id="league-percent-indicator">0%</span>
-                    </div>
-                    <!-- Прогресс бар уровня -->
-                    <div class="w-full h-2 bg-hk-panel border border-hk-border/30 rounded-full overflow-hidden p-0.5">
-                        <div id="league-progress-bar" class="bg-gradient-to-r from-hk-gold to-amber-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
-
-                    <!-- Энергия -->
-                    <div class="flex justify-between items-center text-xs font-bold mt-2">
-                        <div class="flex items-center gap-1.5 text-hk-gold">
-                            <span class="animate-pulse">⚡</span>
-                            <span id="energy-counter">1000 / 1000</span>
-                        </div>
-                        <button onclick="switchView('boost')" class="text-hk-gold font-extrabold hover:underline flex items-center gap-1">
-                            🚀 Буст
-                        </button>
-                    </div>
-                </div>
-
-            </section>
-
-            <!-- Вкладка 2: MINE (ШАХТА / УЛУЧШЕНИЯ) -->
-            <section id="tab-mine" class="tab-view hidden p-4 flex flex-col gap-4">
-                
-                <!-- Бонусная плашка Ежедневного комбо -->
-                <div class="bg-hk-panel border border-hk-border/80 p-3.5 rounded-2xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-black text-white flex items-center gap-1.5">
-                            🎬 Daily Combo Cards
-                        </span>
-                        <span id="combo-bonus-badge" class="text-[9px] text-hk-gold font-black bg-hk-gold/10 px-2.5 py-0.5 rounded-full uppercase">
-                            Награда: +5,000,000 🪙
-                        </span>
-                    </div>
-                    <!-- 3 ячейки комбо в шахте -->
-                    <div class="grid grid-cols-3 gap-2">
-                        <div id="mine-combo-cell-1" class="bg-hk-bg border border-hk-border/60 rounded-xl h-14 flex items-center justify-center text-xs text-hk-textMuted font-bold">❓</div>
-                        <div id="mine-combo-cell-2" class="bg-hk-bg border border-hk-border/60 rounded-xl h-14 flex items-center justify-center text-xs text-hk-textMuted font-bold">❓</div>
-                        <div id="mine-combo-cell-3" class="bg-hk-bg border border-hk-border/60 rounded-xl h-14 flex items-center justify-center text-xs text-hk-textMuted font-bold">❓</div>
-                    </div>
-                </div>
-
-                <!-- Фильтры разделов карточек -->
-                <div class="flex gap-1 bg-hk-panel p-1 rounded-xl border border-hk-border">
-                    <button onclick="switchCategory('pr')" id="btn-cat-pr" class="flex-1 py-1.5 text-[10px] font-black rounded-lg bg-hk-border text-white transition-all">PR & Team</button>
-                    <button onclick="switchCategory('markets')" id="btn-cat-markets" class="flex-1 py-1.5 text-[10px] font-black rounded-lg text-hk-textMuted transition-all">Markets</button>
-                    <button onclick="switchCategory('legal')" id="btn-cat-legal" class="flex-1 py-1.5 text-[10px] font-black rounded-lg text-hk-textMuted transition-all">Legal</button>
-                    <button onclick="switchCategory('web3')" id="btn-cat-web3" class="flex-1 py-1.5 text-[10px] font-black rounded-lg text-hk-textMuted transition-all">Web3</button>
-                </div>
-
-                <!-- Сетка карточек -->
-                <div id="cards-grid" class="grid grid-cols-2 gap-2.5 pb-10">
-                    <!-- Карточки генерируются динамически -->
-                </div>
-            </section>
-
-            <!-- Вкладка 3: FRIENDS (ДРУЗЬЯ) -->
-            <section id="tab-friends" class="tab-view hidden p-4 flex flex-col gap-4">
-                <div class="text-center my-4">
-                    <span class="text-5xl">🎁</span>
-                    <h2 class="text-xl font-black mt-3">Пригласите друзей!</h2>
-                    <p class="text-xs text-hk-textMuted mt-1">И вы, и ваш друг получите отличные бонусы за регистрацию.</p>
-                </div>
-
-                <!-- Различные бонусы за друзей -->
-                <div class="flex flex-col gap-2.5">
-                    <div class="bg-hk-panel border border-hk-border/60 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">🧸</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Пригласить друга</h4>
-                                <span class="text-[10px] text-hk-gold font-bold">+5,000 для вас и друга</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-hk-panel border border-hk-border/60 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">👑</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Друг с Telegram Premium</h4>
-                                <span class="text-[10px] text-hk-gold font-bold">+25,000 для вас и друга</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Список приглашенных друзей -->
-                <div class="mt-4 flex-1">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-black text-white uppercase tracking-wider">Список ваших друзей</h3>
-                        <span id="friends-count-badge" class="text-xs text-hk-gold font-bold bg-hk-gold/10 px-2 py-0.5 rounded-full">0 друзей</span>
-                    </div>
-                    <div id="friends-list-container" class="flex flex-col gap-2 max-h-60 overflow-y-auto">
-                        <div class="bg-hk-panel border border-hk-border p-4 rounded-2xl text-center text-xs text-hk-textMuted">
-                            Вы еще никого не пригласили. Будьте первыми!
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Кнопка Инвайта -->
-                <div class="mt-auto pt-3">
-                    <button onclick="inviteNewFriend()" class="w-full bg-gradient-to-r from-hk-gold to-amber-500 hover:opacity-90 active:scale-95 text-slate-950 font-black py-3 rounded-2xl text-xs uppercase tracking-widest transition-all">
-                        Пригласить нового друга 👥
-                    </button>
-                </div>
-            </section>
-
-            <!-- Вкладка 4: EARN (ЗАРАБОТОК) -->
-            <section id="tab-earn" class="tab-view hidden p-4 flex flex-col gap-4">
-                <div class="text-center my-3">
-                    <span class="text-5xl">🪙</span>
-                    <h2 class="text-xl font-black mt-2">Заработайте больше монет</h2>
-                    <p class="text-xs text-hk-textMuted mt-0.5">Выполняйте простые активности для наполнения кошелька.</p>
-                </div>
-
-                <!-- Ежедневные задачи -->
-                <div class="flex flex-col gap-2.5">
-                    <span class="text-xs font-black text-white uppercase tracking-wider">Ежедневный список</span>
-                    
-                    <!-- Daily Rewards Calendar -->
-                    <div class="bg-gradient-to-r from-amber-500/10 to-hk-panel border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">📅</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Ежедневный сбор монет</h4>
-                                <span id="daily-streak-info" class="text-[10px] text-hk-gold font-bold">+6,600 монет за сегодня</span>
-                            </div>
-                        </div>
-                        <button onclick="claimDailyRewardStreak()" id="btn-daily-claim" class="bg-hk-gold text-slate-950 text-[10px] font-black py-2 px-4 rounded-xl active:scale-95 transition-all">
-                            ЗАБРАТЬ
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Социальные квесты -->
-                <div class="flex flex-col gap-2.5 mt-2">
-                    <span class="text-xs font-black text-white uppercase tracking-wider">Задания соцсетей</span>
-
-                    <div class="bg-hk-panel border border-hk-border p-3 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xl">📺</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Hamster YouTube видео</h4>
-                                <span class="text-[10px] text-hk-gold font-bold">+100,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="runSocialTask(1, 100000)" id="social-btn-1" class="bg-hk-border text-white text-[10px] font-bold py-1.5 px-3 rounded-lg active:scale-95 transition-all">ВЫПОЛНИТЬ</button>
-                    </div>
-
-                    <div class="bg-hk-panel border border-hk-border p-3 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xl">✈️</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Telegram Канал</h4>
-                                <span class="text-[10px] text-hk-gold font-bold">+50,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="runSocialTask(2, 50000)" id="social-btn-2" class="bg-hk-border text-white text-[10px] font-bold py-1.5 px-3 rounded-lg active:scale-95 transition-all">ВЫПОЛНИТЬ</button>
-                    </div>
-
-                    <div class="bg-hk-panel border border-hk-border p-3 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xl">🕊️</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Подписка на X (Twitter)</h4>
-                                <span class="text-[10px] text-hk-gold font-bold">+50,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="runSocialTask(3, 50000)" id="social-btn-3" class="bg-hk-border text-white text-[10px] font-bold py-1.5 px-3 rounded-lg active:scale-95 transition-all">ВЫПОЛНИТЬ</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Вкладка 5: AIRDROP -->
-            <section id="tab-airdrop" class="tab-view hidden p-4 flex flex-col gap-4">
-                <div class="text-center my-4">
-                    <span class="text-5xl">🪂</span>
-                    <h2 class="text-xl font-black mt-2">Airdrop Задачи</h2>
-                    <p class="text-xs text-hk-textMuted mt-1">Выполните требования для прохождения листинга токена на биржах.</p>
-                </div>
-
-                <div class="flex flex-col gap-3">
-                    <!-- Подключение кошелька TON -->
-                    <div class="bg-gradient-to-r from-blue-500/10 to-hk-panel border border-blue-500/20 p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-3xl">💎</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Подключить TON кошелек</h4>
-                                <span id="ton-wallet-status" class="text-[10px] text-hk-textMuted">Не подключено</span>
-                            </div>
-                        </div>
-                        <button onclick="simulateTonConnect()" id="ton-wallet-btn" class="bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-[10px] font-black py-2 px-4 rounded-xl transition-all">
-                            ПОДКЛЮЧИТЬ
-                        </button>
-                    </div>
-
-                    <!-- Чек-лист соответствия критериям дропа -->
-                    <span class="text-xs font-black text-white uppercase tracking-wider mt-2">Прогресс участия</span>
-                    
-                    <div class="bg-hk-panel border border-hk-border/80 p-3.5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-200">Пассивный доход (PPH) более 10,000</span>
-                        <span id="airdrop-check-pph" class="text-hk-red text-xs font-bold">❌ Нет</span>
-                    </div>
-                    <div class="bg-hk-panel border border-hk-border/80 p-3.5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-200">Хотя бы 1 карта 10-го уровня</span>
-                        <span id="airdrop-check-lvl10" class="text-hk-red text-xs font-bold">❌ Нет</span>
-                    </div>
-                    <div class="bg-hk-panel border border-hk-border/80 p-3.5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-200">Daily Combo выполнено</span>
-                        <span id="airdrop-check-combo" class="text-hk-red text-xs font-bold">❌ Нет</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Вкладка 6: BOOST (БУСТЫ / УСИЛИТЕЛИ) -->
-            <section id="tab-boost" class="tab-view hidden p-4 flex flex-col gap-4">
-                <div>
-                    <h2 class="text-xl font-black">Прокачка комбата</h2>
-                    <p class="text-xs text-hk-textMuted mt-1">Повышайте силу клика и вместимость энергии.</p>
-                </div>
-
-                <!-- Бесплатный ежедневный буст восстановления -->
-                <div class="bg-hk-panel border border-hk-border p-4 rounded-2xl">
-                    <span class="block text-[9px] font-black text-hk-textMuted uppercase tracking-wider mb-2.5">Ежедневный бесплатный бонус</span>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">⚡</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Полная энергия</h4>
-                                <span id="boost-free-energy-counter" class="text-[10px] text-hk-textMuted">Доступно: 3 / 3</span>
-                            </div>
-                        </div>
-                        <button onclick="useFreeEnergyBoost()" id="btn-free-energy" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold py-1.5 px-4 rounded-xl transition-all">Использовать</button>
-                    </div>
-                </div>
-
-                <!-- Платные бусты за монеты -->
-                <div class="flex flex-col gap-3 mt-2">
-                    <span class="text-xs font-black text-white uppercase tracking-wider">Платные усилители</span>
-                    
-                    <!-- Мультитап -->
-                    <div class="bg-hk-panel border border-hk-border p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">👆</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Multitap</h4>
-                                <span id="boost-multitap-cost" class="text-[10px] text-hk-textMuted">Уровень 1 • 2,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="buyMultitapUpgrade()" class="bg-hk-gold hover:opacity-90 active:scale-95 text-slate-950 text-xs font-black py-2 px-4 rounded-xl transition-all">КУПИТЬ</button>
-                    </div>
-
-                    <!-- Энергетический лимит -->
-                    <div class="bg-hk-panel border border-hk-border p-4 rounded-2xl flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">🔋</span>
-                            <div>
-                                <h4 class="text-xs font-black text-white">Energy Limit</h4>
-                                <span id="boost-energy-cost" class="text-[10px] text-hk-textMuted">Уровень 1 • 3,000 монет</span>
-                            </div>
-                        </div>
-                        <button onclick="buyEnergyLimitUpgrade()" class="bg-hk-gold hover:opacity-90 active:scale-95 text-slate-950 text-xs font-black py-2 px-4 rounded-xl transition-all">КУПИТЬ</button>
-                    </div>
-                </div>
-            </section>
-
-        </main>
-
-        <!-- ================= ТОСТ-ОПОВЕЩЕНИЯ ================= -->
-        <div id="toast" class="absolute top-20 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 bg-hk-panel/95 border border-hk-gold/30 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2">
-            <span class="w-1.5 h-1.5 bg-hk-gold rounded-full animate-ping"></span>
-            <span id="toast-text">Уведомление</span>
-        </div>
-
-        <!-- ================= МОДАЛЬНОЕ ОКНО: ВЫБОР БИРЖИ ================= -->
-        <div id="exchange-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
-            <div class="bg-hk-panel border border-hk-border w-full max-w-sm rounded-3xl p-6 flex flex-col gap-4">
-                <h3 class="font-black text-lg text-center text-white">Выберите свою биржу</h3>
-                
-                <div class="grid grid-cols-2 gap-2.5">
-                    <button onclick="selectExchange('Binance', '🔶')" class="p-4 bg-hk-bg hover:bg-hk-border/40 rounded-2xl border border-hk-border flex flex-col items-center gap-2 transition-all">
-                        <span class="text-2xl">🔶</span>
-                        <span class="text-xs font-bold text-white">Binance</span>
-                    </button>
-                    <button onclick="selectExchange('Bybit', '🍊')" class="p-4 bg-hk-bg hover:bg-hk-border/40 rounded-2xl border border-hk-border flex flex-col items-center gap-2 transition-all">
-                        <span class="text-2xl">🍊</span>
-                        <span class="text-xs font-bold text-white">Bybit</span>
-                    </button>
-                    <button onclick="selectExchange('OKX', '⬛')" class="p-4 bg-hk-bg hover:bg-hk-border/40 rounded-2xl border border-hk-border flex flex-col items-center gap-2 transition-all">
-                        <span class="text-2xl">⬛</span>
-                        <span class="text-xs font-bold text-white">OKX</span>
-                    </button>
-                    <button onclick="selectExchange('Gate.io', '🎯')" class="p-4 bg-hk-bg hover:bg-hk-border/40 rounded-2xl border border-hk-border flex flex-col items-center gap-2 transition-all">
-                        <span class="text-2xl">🎯</span>
-                        <span class="text-xs font-bold text-white">Gate.io</span>
-                    </button>
-                </div>
-                
-                <button onclick="closeModal('exchange-modal')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl text-xs uppercase transition-all">
-                    Отмена
-                </button>
+                <!-- Поле ввода кастомного Cloudflare воркера -->
+                <input id="custom-worker-url" type="text" oninput="saveCustomWorker()" placeholder="https://your-worker.workers.dev" class="hidden w-full bg-black border border-vpn-border rounded px-2.5 py-1.5 text-[10px] text-white placeholder-vpn-textMuted" />
             </div>
         </div>
 
-        <!-- ================= МОДАЛЬНОЕ ОКНО: DAILY CIPHER (ШИФР) ================= -->
-        <div id="cipher-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
-            <div class="bg-hk-panel border border-hk-border w-full max-w-sm rounded-3xl p-6 flex flex-col gap-4 text-center">
-                <h3 class="font-black text-lg text-hk-red uppercase tracking-wider">Секретный Морзе Шифр</h3>
-                <p class="text-[11px] text-hk-textMuted leading-relaxed">На главном экране удерживайте хомяка более 0.35 сек для Тире (—), кликайте быстро для Точки (•).</p>
-                
-                <!-- Текущее состояние разгадки -->
-                <div class="bg-black/50 p-4 rounded-2xl border border-hk-border flex flex-col items-center justify-center">
-                    <span class="text-[9px] text-hk-textMuted font-bold uppercase mb-1">Слово дня на сегодня</span>
-                    <span id="cipher-output-word" class="text-2xl font-black tracking-[0.3em] text-white">_ _ _ _ _ _ _</span>
-                </div>
+        <!-- Центральная кнопка -->
+        <div class="flex flex-col items-center justify-center my-auto py-2 relative">
+            <div id="button-glow" class="absolute w-52 h-52 rounded-full bg-vpn-red/5 blur-3xl -z-10 transition-colors duration-500"></div>
 
-                <!-- Подсказка азбуки Морзе -->
-                <div class="text-left text-[11px] text-slate-300 bg-hk-bg/80 p-3.5 rounded-xl border border-hk-border">
-                    <strong class="text-hk-gold">Кодовое слово: HAMSTER</strong><br>
-                    • H (• • • •) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • A (• —)<br>
-                    • M (— —) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • S (• • •)<br>
-                    • T (—) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • E (•)<br>
-                    • R (• — •)
-                </div>
+            <div class="relative w-40 h-40 flex items-center justify-center">
+                <div id="pulse-ring-1" class="pulse-element bg-vpn-red/20 hidden"></div>
+                <div id="pulse-ring-2" class="pulse-element bg-vpn-red/10 hidden" style="animation-delay: 0.5s;"></div>
 
-                <button onclick="closeModal('cipher-modal')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl text-xs uppercase transition-all">
-                    Понятно
+                <button onclick="toggleConnection()" id="vpn-main-btn" class="relative w-32 h-32 rounded-full bg-vpn-panel border-4 border-vpn-red shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-white">
+                    <span id="btn-label-status" class="text-[10px] font-black tracking-widest text-vpn-red uppercase">CONNECT</span>
+                    <span id="btn-label-sub" class="text-[8px] text-vpn-textMuted uppercase mt-1">TAP TO START</span>
                 </button>
+            </div>
+
+            <!-- Метрики -->
+            <div class="grid grid-cols-2 gap-4 mt-6 w-full px-2 text-center">
+                <div class="bg-vpn-panel/40 border border-vpn-border/50 p-3 rounded-xl">
+                    <span class="block text-[8px] text-vpn-textMuted font-bold uppercase tracking-wider">SPEED</span>
+                    <span id="speed-down" class="text-xs font-black text-white mt-1 block">0.00 Mbps</span>
+                </div>
+                <div class="bg-vpn-panel/40 border border-vpn-border/50 p-3 rounded-xl">
+                    <span class="block text-[8px] text-vpn-textMuted font-bold uppercase tracking-wider">UPTIME</span>
+                    <span id="connection-timer" class="text-xs font-black text-white mt-1 block">00:00:00</span>
+                </div>
             </div>
         </div>
 
-        <!-- ================= МОДАЛЬНОЕ ОКНО: MINI-GAME (КЛЮЧ) ================= -->
-        <div id="minigame-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
-            <div class="bg-hk-panel border border-hk-border w-full max-w-sm rounded-3xl p-5 flex flex-col gap-4 text-center">
-                <h3 class="font-black text-lg text-[#6366f1] uppercase tracking-wider">Головоломка: Золотой Ключ</h3>
-                <p class="text-[11px] text-hk-textMuted leading-relaxed">Двигайте свечи кликом, чтобы дать проход Ключу 🔑 направо до конца!</p>
-
-                <!-- Интерактивная зона с мини-игрой -->
-                <div class="relative w-full h-64 bg-slate-950 rounded-2xl border-2 border-hk-border/80 overflow-hidden flex items-center justify-center" id="puzzle-board">
-                    <!-- Будет сгенерировано JS -->
-                </div>
-
-                <div class="flex items-center justify-between text-xs font-bold px-1">
-                    <span id="minigame-timer-label" class="text-hk-red">Время: 30с</span>
-                    <button onclick="startMiniGameTimer()" class="bg-[#6366f1] text-white text-[10px] py-1 px-3 rounded-md uppercase tracking-wide">Запустить</button>
-                </div>
-
-                <button onclick="closeMiniGame()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl text-xs uppercase transition-all">
-                    Закрыть игру
-                </button>
+        <!-- Консоль -->
+        <div class="bg-black/80 border border-vpn-border/60 p-3 rounded-xl h-28 flex flex-col justify-between">
+            <div class="text-[8px] text-vpn-textMuted font-bold uppercase tracking-wider border-b border-vpn-border/30 pb-1 mb-1 flex justify-between">
+                <span>TUNNEL CONSOLE LOG</span>
+                <span>SECURE MODE</span>
+            </div>
+            <div id="console-logs" class="log-scroll flex-1 overflow-y-auto text-[9px] text-slate-400 font-mono space-y-1 pr-1">
+                <div>[SYSTEM] READY TO ESTABLISH SECURITY TUNNEL</div>
+                <div>[SYSTEM] SELECT PROXY TYPE AND TAP CONNECT</div>
             </div>
         </div>
 
-        <!-- ================= НИЖНЕЕ МЕНЮ (NAVIGATION) ================= -->
-        <footer class="absolute bottom-0 inset-x-0 bg-hk-panel border-t border-hk-border/60 p-2 shrink-0 z-30">
-            <nav class="flex justify-between items-center gap-0.5">
-                <button onclick="switchView('exchange')" id="nav-exchange" class="flex-1 flex flex-col items-center gap-1 py-1 text-hk-gold">
-                    <span class="text-xl leading-none">🏦</span>
-                    <span class="text-[9px] font-extrabold uppercase">Exchange</span>
-                </button>
-                <button onclick="switchView('mine')" id="nav-mine" class="flex-1 flex flex-col items-center gap-1 py-1 text-hk-textMuted hover:text-white transition-all">
-                    <span class="text-xl leading-none">⛏️</span>
-                    <span class="text-[9px] font-extrabold uppercase">Mine</span>
-                </button>
-                <button onclick="switchView('friends')" id="nav-friends" class="flex-1 flex flex-col items-center gap-1 py-1 text-hk-textMuted hover:text-white transition-all">
-                    <span class="text-xl leading-none">👥</span>
-                    <span class="text-[9px] font-extrabold uppercase">Friends</span>
-                </button>
-                <button onclick="switchView('earn')" id="nav-earn" class="flex-1 flex flex-col items-center gap-1 py-1 text-hk-textMuted hover:text-white transition-all">
-                    <span class="text-xl leading-none">🪙</span>
-                    <span class="text-[9px] font-extrabold uppercase">Earn</span>
-                </button>
-                <button onclick="switchView('airdrop')" id="nav-airdrop" class="flex-1 flex flex-col items-center gap-1 py-1 text-hk-textMuted hover:text-white transition-all">
-                    <span class="text-xl leading-none">🪂</span>
-                    <span class="text-[9px] font-extrabold uppercase">Airdrop</span>
-                </button>
-            </nav>
-        </footer>
+        <!-- Мини-браузер -->
+        <div class="mt-4 border-t border-vpn-border/40 pt-4 flex flex-col gap-2">
+            <span class="text-[8px] text-vpn-textMuted font-bold uppercase tracking-wider">SANDBOX BROWSER</span>
+            
+            <div class="flex gap-1.5">
+                <input id="proxy-url-input" type="text" disabled placeholder="Сначала подключите VPN..." class="flex-1 bg-vpn-panel border border-vpn-border rounded-lg px-3 py-2 text-xs text-slate-400 placeholder-vpn-textMuted focus:border-vpn-cyan transition-colors" />
+                <button onclick="loadPage()" id="proxy-go-btn" disabled class="bg-vpn-border text-slate-500 font-bold text-xs px-4 rounded-lg transition-colors cursor-not-allowed">GO</button>
+            </div>
+            
+            <div class="relative w-full h-36 bg-black rounded-xl border border-vpn-border/50 overflow-hidden flex items-center justify-center">
+                <iframe id="proxy-iframe" class="w-full h-full hidden" src="about:blank"></iframe>
+                <div id="proxy-placeholder" class="text-[9px] text-vpn-textMuted uppercase text-center p-4">
+                    Туннель неактивен.
+                </div>
+            </div>
+        </div>
 
     </div>
 
-    <!-- ================= ИГРОВЫЕ СКРИПТЫ ================= -->
+    <!-- Скрипт VPN-Клиента -->
     <script>
-        // Состояние игры (State)
         const state = {
-            balance: 0,
-            earnedPerTap: 1,
-            profitPerHour: 0,
-            maxEnergy: 1000,
-            currentEnergy: 1000,
-
-            // Уровни/Лиги (Лимиты баланса)
-            levels: [
-                { name: "Bronze", min: 0, max: 5000 },
-                { name: "Silver", min: 5000, max: 25000 },
-                { name: "Gold", min: 25000, max: 100000 },
-                { name: "Platinum", min: 100000, max: 500000 },
-                { name: "Diamond", min: 500000, max: 2000000 },
-                { name: "Epic", min: 2000000, max: 10000000 },
-                { name: "Legendary", min: 10000000, max: 50000000 },
-                { name: "Master", min: 50000000, max: 100000000 },
-                { name: "Grandmaster", min: 100000000, max: 1000000000 },
-                { name: "Lord", min: 1000000000, max: Infinity }
-            ],
-
-            // PR & Team, Markets, Legal, Web3 Карточки
-            upgrades: [
-                // PR & Team
-                { id: 1, name: "Канал на YouTube", category: "pr", cost: 120, pph: 15, level: 0, icon: "📺" },
-                { id: 2, name: "SMM Менеджер", category: "pr", cost: 500, pph: 55, level: 0, icon: "✍️" },
-                { id: 3, name: "Команда тестировщиков (QA)", category: "pr", cost: 1500, pph: 140, level: 0, icon: "🐞" }, // Секретная комбо 1
-                { id: 4, name: "CEO Хомяк инфлюенсер", category: "pr", cost: 6000, pph: 580, level: 0, icon: "👑" },
-
-                // Markets
-                { id: 5, name: "Пара листинга USDT", category: "markets", cost: 200, pph: 25, level: 0, icon: "💵" },
-                { id: 6, name: "Маркет-мейкер пул", category: "markets", cost: 1000, pph: 110, level: 0, icon: "📊" },
-                { id: 7, name: "Маржинальная торговля x100", category: "markets", cost: 4500, pph: 410, level: 0, icon: "📈" }, // Секретная комбо 2
-                { id: 8, name: "Биржа деривативов", category: "markets", cost: 15000, pph: 1300, level: 0, icon: "📉" },
-
-                // Legal
-                { id: 9, name: "Лицензия в Европе", category: "legal", cost: 800, pph: 90, level: 0, icon: "🇪🇺" },
-                { id: 10, name: "Верификация KYC/AML", category: "legal", cost: 3500, pph: 360, level: 0, icon: "🛡️" },
-                { id: 11, name: "Compliance аудит", category: "legal", cost: 11000, pph: 1100, level: 0, icon: "📑" },
-
-                // Web3
-                { id: 12, name: "TON Смарт-Контракт", category: "web3", cost: 2000, pph: 210, level: 0, icon: "💎" }, // Секретная комбо 3
-                { id: 13, name: "NFT Маркетплейс", category: "web3", cost: 8000, pph: 850, level: 0, icon: "🖼️" }
-            ],
-
-            activeMineCategory: "pr",
-
-            // Секретное Дейли Комбо (QA, Маржа x100, TON Смарт-Контракт)
-            comboCards: [3, 7, 12],
-            comboBoughtToday: [],
-            comboClaimed: false,
-
-            // Ежедневный Морзе-Шифр
-            cipherActive: false,
-            cipherWord: "HAMSTER",
-            cipherCompleted: false,
-            cipherInput: "",
-            tapStartTime: 0,
-
-            // Рефералы (Симуляция)
-            friends: [],
-            streakDays: 1,
-            lastStreakClaim: null,
-
-            // Прокачка/Бусты
-            multitapLvl: 1,
-            energyLvl: 1,
-            freeEnergyCount: 3,
-
-            // Интерактивная Мини-игра (Ключ)
-            isMiniGameActive: false,
-            miniGameTimeLeft: 30,
-            miniGameTimerInterval: null,
-            puzzleBlocks: [
-                { id: 'key', type: 'h', row: 2, col: 1, size: 2, color: 'bg-gradient-to-r from-hk-gold to-yellow-600', icon: '🔑' },
-                { id: 'o1', type: 'v', row: 0, col: 3, size: 3, color: 'bg-hk-red' },
-                { id: 'o2', type: 'v', row: 2, col: 4, size: 2, color: 'bg-hk-green' },
-                { id: 'o3', type: 'h', row: 4, col: 1, size: 2, color: 'bg-slate-700' }
-            ]
+            status: 'DISCONNECTED',
+            timer: 0,
+            timerInterval: null,
+            speedInterval: null,
+            
+            proxyType: 'public', // public или private
+            
+            // Публичный CORS прокси-сервер, работающий бесплатно без настроек
+            publicProxyUrl: "https://api.allorigins.win/raw?url=",
+            
+            // URL вашего развернутого Cloudflare Worker
+            privateProxyUrl: ""
         };
 
-        // Буквы азбуки Морзе
-        const morseAlphabet = {
-            "....": "H",
-            ".-": "A",
-            "--": "M",
-            "...": "S",
-            "-": "T",
-            ".": "E",
-            ".-.": "R"
-        };
-
-        // Запуск логики
+        // Загрузка настроек
         window.onload = function() {
-            initInputs();
-            updateUI();
-            renderUpgrades();
-            initMiniGameLayout();
-
-            // Восстановление энергии (+3 в сек)
-            setInterval(() => {
-                if (state.currentEnergy < state.maxEnergy) {
-                    state.currentEnergy = Math.min(state.maxEnergy, state.currentEnergy + 3);
-                    updateUI();
-                }
-            }, 1000);
-
-            // Начисление пассивного дохода
-            setInterval(() => {
-                if (state.profitPerHour > 0) {
-                    state.balance += (state.profitPerHour / 3600);
-                    updateUI();
-                }
-            }, 1000);
+            const savedWorker = localStorage.getItem('cf_worker_url');
+            if (savedWorker) {
+                document.getElementById('custom-worker-url').value = savedWorker;
+                state.privateProxyUrl = savedWorker;
+            }
         };
 
-        // --- КЛИКЕР И МУЛЬТИТАЧ СИСТЕМА ---
-        function initInputs() {
-            const tapArea = document.getElementById('hamster-tap-button');
+        function setProxyType(type) {
+            state.proxyType = type;
+            const btnPub = document.getElementById('btn-proxy-public');
+            const btnPriv = document.getElementById('btn-proxy-private');
+            const inputEl = document.getElementById('custom-worker-url');
 
-            // Поддержка Touch событий на смартфонах для мультитача
-            tapArea.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                state.tapStartTime = Date.now();
-                
-                // Физика клика
-                tapArea.style.transform = "scale(0.92)";
-
-                // Регистрируем каждый тач отдельно для начисления монет
-                const touches = e.changedTouches;
-                for (let i = 0; i < touches.length; i++) {
-                    const t = touches[i];
-                    handleSingleTap(t.clientX, t.clientY);
-                }
-            });
-
-            tapArea.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                tapArea.style.transform = "scale(1)";
-                
-                // Проверяем длительность тача для Морзе-кода
-                const touchDuration = Date.now() - state.tapStartTime;
-                processMorseTap(touchDuration);
-            });
-
-            // Для десктопной мыши
-            tapArea.addEventListener('mousedown', (e) => {
-                state.tapStartTime = Date.now();
-                tapArea.style.transform = "scale(0.92)";
-                handleSingleTap(e.clientX, e.clientY);
-            });
-
-            tapArea.addEventListener('mouseup', () => {
-                tapArea.style.transform = "scale(1)";
-                const clickDuration = Date.now() - state.tapStartTime;
-                processMorseTap(clickDuration);
-            });
-        }
-
-        // Логика единичного тапа
-        function handleSingleTap(x, y) {
-            if (state.currentEnergy < state.earnedPerTap) {
-                showToast("Недостаточно энергии!");
-                playSynthBeep(120, 0.25);
-                document.getElementById('hamster-tap-button').classList.add('shake-element');
-                setTimeout(() => {
-                    document.getElementById('hamster-tap-button').classList.remove('shake-element');
-                }, 300);
-                return;
-            }
-
-            state.currentEnergy -= state.earnedPerTap;
-            state.balance += state.earnedPerTap;
-
-            playSynthBeep(450, 0.05);
-            createFloatingTapNumber(x, y);
-            updateUI();
-        }
-
-        // Создание анимированного вылета монетки
-        function createFloatingTapNumber(clientX, clientY) {
-            const container = document.getElementById('hamster-tap-button');
-            const rect = container.getBoundingClientRect();
-
-            let x = rect.width / 2;
-            let y = rect.height / 2;
-
-            if (clientX && clientY) {
-                x = clientX - rect.left;
-                y = clientY - rect.top;
-            }
-
-            const el = document.createElement('span');
-            el.className = "tap-coin-particle text-3xl font-black text-hk-gold drop-shadow-lg";
-            el.style.left = `${x}px`;
-            el.style.top = `${y}px`;
-            el.innerText = `+${state.earnedPerTap}`;
-
-            container.appendChild(el);
-            setTimeout(() => el.remove(), 750);
-        }
-
-        // --- СЕКРЕТНЫЙ РЕЖИМ ШИФРА МОРЗЕ ---
-        let cipherCheatCounter = 0;
-        function triggerCipherCheat() {
-            cipherCheatCounter++;
-            if (cipherCheatCounter >= 3) {
-                cipherCheatCounter = 0;
-                toggleCipherMode();
-            }
-        }
-
-        function toggleCipherMode() {
-            state.cipherActive = !state.cipherActive;
-            const glow = document.getElementById('hamster-glow');
-            const badge = document.getElementById('cipher-text-indicator');
-
-            if (state.cipherActive) {
-                glow.className = "absolute w-72 h-72 rounded-full red-radial-glow -z-10 transition-all duration-500";
-                badge.innerText = "🔴 АКТИВЕН";
-                badge.className = "text-center text-[11px] font-black py-0.5 tracking-wider text-hk-red animate-pulse";
-                showToast("Введен режим секретного шифра!");
-                playSynthBeep(800, 0.3);
+            if (type === 'public') {
+                btnPub.className = "flex-1 py-1 text-[9px] font-bold rounded bg-vpn-border text-white uppercase";
+                btnPriv.className = "flex-1 py-1 text-[9px] font-bold rounded text-vpn-textMuted uppercase";
+                inputEl.classList.add('hidden');
+                document.getElementById('location-text').innerText = "US CDN";
             } else {
-                glow.className = "absolute w-72 h-72 rounded-full gold-radial-glow -z-10 transition-all duration-500";
-                badge.innerText = "🔒 ШИФР";
-                badge.className = "text-center text-[11px] font-black py-0.5 tracking-wider text-hk-textMuted";
-                showToast("Режим секретного шифра выключен");
+                btnPub.className = "flex-1 py-1 text-[9px] font-bold rounded text-vpn-textMuted uppercase";
+                btnPriv.className = "flex-1 py-1 text-[9px] font-bold rounded bg-vpn-border text-white uppercase";
+                inputEl.classList.remove('hidden');
+                document.getElementById('location-text').innerText = "CLOUDFLARE";
             }
         }
 
-        function processMorseTap(duration) {
-            if (!state.cipherActive || state.cipherCompleted) return;
-
-            // Если зажатие более 320мс — это тире (—), иначе точка (•)
-            const isDash = duration > 320;
-            const morseChar = isDash ? "-" : ".";
-            state.cipherInput += morseChar;
-
-            showToast(`Символ: ${isDash ? 'Тире (—)' : 'Точка (•)'}`);
-            checkMorseLetter();
+        function saveCustomWorker() {
+            const val = document.getElementById('custom-worker-url').value.trim();
+            localStorage.setItem('cf_worker_url', val);
+            state.privateProxyUrl = val;
         }
 
-        function checkMorseLetter() {
-            const solvedCount = document.getElementById('cipher-output-word').innerText.replace(/\s/g, "").replace(/_/g, "").length;
-            const targetLetter = state.cipherWord[solvedCount];
+        function appendLog(text) {
+            const consoleBox = document.getElementById('console-logs');
+            const newLog = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+            newLog.innerHTML = `<span class="text-vpn-textMuted">[${time}]</span> ${text}`;
+            consoleBox.appendChild(newLog);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
 
-            // Найти кодовое совпадение в азбуке Морзе
-            const matchingMorse = Object.keys(morseAlphabet).find(k => morseAlphabet[k] === targetLetter);
-
-            if (state.cipherInput === matchingMorse) {
-                // Буква введена правильно!
-                state.cipherInput = "";
-                
-                let wordLayout = "";
-                for (let i = 0; i < state.cipherWord.length; i++) {
-                    if (i <= solvedCount) {
-                        wordLayout += state.cipherWord[i] + " ";
-                    } else {
-                        wordLayout += "_ ";
-                    }
-                }
-                document.getElementById('cipher-output-word').innerText = wordLayout;
-                showToast(`Разгадана буква: ${targetLetter}! 🎉`);
-                playSynthBeep(880, 0.2);
-
-                if (solvedCount + 1 === state.cipherWord.length) {
-                    // Разгадано все слово
-                    state.balance += 1000000;
-                    state.cipherCompleted = true;
-                    state.cipherActive = false;
-                    document.getElementById('cipher-status-badge').innerText = "✅ ГОТОВО";
-                    document.getElementById('cipher-text-indicator').innerText = "РАЗГАДАН";
-                    document.getElementById('cipher-text-indicator').className = "text-center text-[11px] font-black py-0.5 text-hk-green";
-                    document.getElementById('hamster-glow').className = "absolute w-72 h-72 rounded-full gold-radial-glow -z-10 transition-all duration-500";
-                    showToast("ШИФР РАЗГАДАН! +1,000,000 🪙");
-                    playWinMelody();
-                }
-            } else {
-                // Превышен лимит кода буквы — сброс накопленного
-                if (state.cipherInput.length >= 4) {
-                    state.cipherInput = "";
-                    showToast("Неправильный символ, попробуйте еще раз!");
-                    playSynthBeep(100, 0.4);
-                }
+        function toggleConnection() {
+            if (state.status === 'DISCONNECTED') {
+                connect();
+            } else if (state.status === 'CONNECTED') {
+                disconnect();
             }
         }
 
-        // --- ВКЛАДКИ И КАТЕГОРИИ ---
-        function switchView(tabId) {
-            document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-
-            // Кнопки меню
-            document.querySelectorAll('footer nav button').forEach(b => {
-                b.className = "flex-1 flex flex-col items-center gap-1 py-1 text-hk-textMuted hover:text-white transition-all";
-            });
-            document.getElementById(`nav-${tabId}`).className = "flex-1 flex flex-col items-center gap-1 py-1 text-hk-gold";
-
-            if (tabId === 'mine') {
-                renderUpgrades();
-            }
-        }
-
-        function switchCategory(catId) {
-            state.activeMineCategory = catId;
-            document.querySelectorAll('#btn-cat-pr, #btn-cat-markets, #btn-cat-legal, #btn-cat-web3').forEach(btn => {
-                btn.className = "flex-1 py-1.5 text-[10px] font-black rounded-lg text-hk-textMuted transition-all";
-            });
-            document.getElementById(`btn-cat-${catId}`).className = "flex-1 py-1.5 text-[10px] font-black rounded-lg bg-hk-border text-white transition-all";
-            renderUpgrades();
-        }
-
-        // --- ШАХТА: КАРТОЧКИ ---
-        function renderUpgrades() {
-            const grid = document.getElementById('cards-grid');
-            grid.innerHTML = '';
-
-            const filtered = state.upgrades.filter(c => c.category === state.activeMineCategory);
-
-            filtered.forEach(card => {
-                const cost = Math.round(card.cost * Math.pow(1.55, card.level));
-                const pph = Math.round(card.pph * Math.pow(1.3, card.level));
-
-                const div = document.createElement('div');
-                div.className = "bg-hk-panel border border-hk-border/80 p-3.5 rounded-2xl flex flex-col justify-between hover:border-slate-700/80 transition-all";
-                
-                div.innerHTML = `
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-2xl">${card.icon}</span>
-                            <span class="text-[9px] bg-hk-border text-slate-300 px-2 py-0.5 rounded-full font-bold">ур. ${card.level}</span>
-                        </div>
-                        <h4 class="text-xs font-black text-white line-clamp-1">${card.name}</h4>
-                        <div class="flex items-center gap-1 mt-1 mb-3">
-                            <span class="text-[9px] text-hk-textMuted">Прибыль/час:</span>
-                            <span class="text-[10px] text-hk-green font-black">+${formatCompact(pph)}</span>
-                        </div>
-                    </div>
-                    <button onclick="buyUpgradeCard(${card.id})" class="w-full bg-[#2a2d34] hover:bg-hk-gold hover:text-slate-950 active:scale-95 text-white font-extrabold py-2 px-1 rounded-xl text-[10px] transition-all flex items-center justify-center gap-1">
-                        <span>💰</span>
-                        <span>${formatCompact(cost)}</span>
-                    </button>
-                `;
-                grid.appendChild(div);
-            });
-        }
-
-        function buyUpgradeCard(id) {
-            const card = state.upgrades.find(c => c.id === id);
-            if (!card) return;
-
-            const cost = Math.round(card.cost * Math.pow(1.55, card.level));
-            const pphAdded = Math.round(card.pph * Math.pow(1.3, card.level));
-
-            if (state.balance < cost) {
-                showToast("Недостаточно монет для расширения бизнеса!");
-                playSynthBeep(150, 0.3);
+        function connect() {
+            if (state.proxyType === 'private' && !state.privateProxyUrl) {
+                appendLog("[ERROR] Введите URL вашего Cloudflare воркера");
                 return;
             }
 
-            state.balance -= cost;
-            state.profitPerHour += pphAdded;
-            card.level += 1;
-
-            // Логика Дейли Комбо
-            if (state.comboCards.includes(id) && !state.comboBoughtToday.includes(id)) {
-                state.comboBoughtToday.push(id);
-                updateComboUI();
-                showToast("Новая комбо-карта дня открыта!");
-            }
-
-            playSynthBeep(523.25, 0.08);
-            setTimeout(() => playSynthBeep(659.25, 0.08), 80);
-
-            renderUpgrades();
+            state.status = 'CONNECTING';
             updateUI();
-        }
-
-        function updateComboUI() {
-            for (let i = 1; i <= 3; i++) {
-                const cell = document.getElementById(`combo-cell-${i}`);
-                const mineCell = document.getElementById(`mine-combo-cell-${i}`);
-                
-                if (state.comboBoughtToday[i-1]) {
-                    const card = state.upgrades.find(u => u.id === state.comboBoughtToday[i-1]);
-                    cell.innerText = card.icon;
-                    mineCell.innerText = `${card.icon} Открыто`;
-                    mineCell.className = "bg-hk-bg border border-hk-gold rounded-xl h-14 flex items-center justify-center text-xs text-hk-gold font-bold";
-                }
-            }
-
-            // Получение 5,000,000 при сборе комбо
-            if (state.comboBoughtToday.length === 3 && !state.comboClaimed) {
-                state.comboClaimed = true;
-                state.balance += 5000000;
-                document.getElementById('combo-status-led').className = "w-2.5 h-2.5 rounded-full bg-hk-green";
-                document.getElementById('combo-bonus-badge').innerText = "Получено ✅";
-                showToast("ПОЗДРАВЛЯЕМ! Daily Combo собрано! +5,000,000 🪙");
-                playWinMelody();
-            }
-        }
-
-        // --- БУСТЫ (ПРОКАЧКА) ---
-        function buyMultitapUpgrade() {
-            const cost = Math.round(2000 * Math.pow(2.2, state.multitapLvl - 1));
-            if (state.balance < cost) {
-                showToast("Недостаточно монет!");
-                playSynthBeep(150, 0.3);
-                return;
-            }
-
-            state.balance -= cost;
-            state.multitapLvl++;
-            state.earnedPerTap = state.multitapLvl;
-            showToast("Сила клика (Multitap) успешно улучшена!");
-            updateUI();
-        }
-
-        function buyEnergyLimitUpgrade() {
-            const cost = Math.round(3000 * Math.pow(2, state.energyLvl - 1));
-            if (state.balance < cost) {
-                showToast("Недостаточно монет!");
-                playSynthBeep(150, 0.3);
-                return;
-            }
-
-            state.balance -= cost;
-            state.energyLvl++;
-            state.maxEnergy = 1000 + (state.energyLvl - 1) * 500;
-            state.currentEnergy = state.maxEnergy;
-            showToast("Запас максимальной энергии расширен!");
-            updateUI();
-        }
-
-        function useFreeEnergyBoost() {
-            if (state.freeEnergyCount <= 0) {
-                showToast("Все попытки исчерпаны!");
-                return;
-            }
-
-            state.currentEnergy = state.maxEnergy;
-            state.freeEnergyCount--;
-            showToast("Энергия полностью восполнена!");
-            updateUI();
-        }
-
-        // --- ДРУЗЬЯ (РЕФЕРАЛЫ) ---
-        function inviteNewFriend() {
-            const firstNames = ["Cryptan", "Hamster_Pro", "TON_Lord", "Kombat_Master", "Durov_Fan", "CEO_Crypto"];
-            const randomName = "@" + firstNames[Math.floor(Math.random() * firstNames.length)] + "_" + Math.floor(100 + Math.random() * 900);
             
-            state.friends.push(randomName);
-            state.balance += 5000;
-            showToast(`Приглашен: ${randomName}! Начислено +5,000 монет!`);
+            appendLog("Инициализация бесплатного туннеля...");
             
-            // Отрисовка в список друзей
-            const container = document.getElementById('friends-list-container');
-            if (state.friends.length === 1) container.innerHTML = ''; // удаление пустого состояния
-
-            const item = document.createElement('div');
-            item.className = "bg-hk-panel border border-hk-border p-3 rounded-xl flex justify-between items-center";
-            item.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">🐹</span>
-                    <span class="text-xs font-bold text-white">${randomName}</span>
-                </div>
-                <span class="text-[10px] text-hk-gold font-bold">+5,000 монет</span>
-            `;
-            container.appendChild(item);
-
-            updateUI();
-        }
-
-        // --- ЗАДАЧИ ЗАРАБОТКА (EARN) ---
-        function claimDailyRewardStreak() {
-            state.balance += 6600;
-            
-            const btn = document.getElementById('btn-daily-claim');
-            btn.className = "bg-hk-border text-hk-textMuted text-[10px] font-black py-2 px-4 rounded-xl pointer-events-none";
-            btn.innerText = "ПОЛУЧЕНО ✅";
-            document.getElementById('daily-streak-info').innerText = "Возвращайтесь завтра!";
-            showToast("Награда получена! +6,600 монет зачислено!");
-            updateUI();
-        }
-
-        function runSocialTask(id, reward) {
-            const btn = document.getElementById(`social-btn-${id}`);
-            btn.innerText = "ПРОВЕРКА...";
-            btn.className = "bg-hk-border text-hk-gold text-[10px] font-bold py-1.5 px-3 rounded-lg pointer-events-none";
-            playSynthBeep(440, 0.1);
+            setTimeout(() => {
+                appendLog("Подключение к удаленной ноде...");
+                playBeep(250, 0.1);
+            }, 700);
 
             setTimeout(() => {
-                state.balance += reward;
-                btn.className = "bg-hk-border text-hk-green text-[10px] font-bold py-1.5 px-3 rounded-lg pointer-events-none";
-                btn.innerText = "ГОТОВО ✅";
-                showToast(`Задание выполнено! +${formatCompact(reward)} монет`);
-                updateUI();
-            }, 2500);
-        }
-
-        // --- ПОДКЛЮЧЕНИЕ TON КОШЕЛЬКА ---
-        function simulateTonConnect() {
-            const btn = document.getElementById('ton-wallet-btn');
-            btn.innerText = "ПОДКЛЮЧЕНИЕ...";
-            playSynthBeep(523.25, 0.1);
+                appendLog(state.proxyType === 'public' 
+                    ? "Подключение к AllOrigins CDN..." 
+                    : "Подключение к Cloudflare Edge Network (US)...");
+                playBeep(350, 0.1);
+            }, 1400);
 
             setTimeout(() => {
-                btn.className = "bg-hk-green text-slate-950 text-[10px] font-black py-2 px-4 rounded-xl pointer-events-none";
-                btn.innerText = "UQAs...7B2x ✅";
-                document.getElementById('ton-wallet-status').innerText = "Кошелек TON подключен";
-                showToast("Кошелек успешно авторизован в Hamster Airdrop!");
-                playWinMelody();
-            }, 1500);
-        }
-
-        // --- МИНИ-ИГРА (ПАЗЛ КЛЮЧА) ---
-        function openMiniGame() {
-            openModal('minigame-modal');
-            initMiniGameLayout();
-        }
-
-        function closeMiniGame() {
-            closeModal('minigame-modal');
-            clearInterval(state.miniGameTimerInterval);
-            state.isMiniGameActive = false;
-        }
-
-        function initMiniGameLayout() {
-            const board = document.getElementById('puzzle-board');
-            board.innerHTML = '';
-            
-            // Отрисовка 6x6 сеток
-            const bgGrid = document.createElement('div');
-            bgGrid.className = "absolute inset-0 grid grid-cols-6 grid-rows-6 opacity-10 pointer-events-none";
-            for (let i = 0; i < 36; i++) {
-                const cell = document.createElement('div');
-                cell.className = "border border-white";
-                bgGrid.appendChild(cell);
-            }
-            board.appendChild(bgGrid);
-
-            // Рендер блоков головоломки
-            state.puzzleBlocks.forEach(b => {
-                const el = document.createElement('div');
-                el.id = `block-${b.id}`;
-                el.className = `absolute ${b.color} rounded-lg flex items-center justify-center font-bold text-white transition-all duration-200 cursor-pointer shadow-md select-none border border-white/10`;
+                state.status = 'CONNECTED';
+                appendLog("Туннель успешно установлен. Локация: США/Глобальный узел Cloudflare");
+                playBeep(550, 0.25);
                 
-                // Расположение
-                updateBlockPosition(el, b);
-
-                if (b.icon) {
-                    el.innerText = b.icon;
-                    el.classList.add('text-xl');
-                }
-
-                // Логика клика/передвижения в рамках реплики
-                el.onclick = () => {
-                    if (!state.isMiniGameActive) {
-                        showToast("Сначала запустите игру таймером!");
-                        return;
-                    }
-                    moveBlock(b);
-                };
-
-                board.appendChild(el);
-            });
-        }
-
-        function updateBlockPosition(el, b) {
-            const cellSize = 100 / 6; // процентное соотношение 6х6
-            el.style.width = b.type === 'h' ? `${b.size * cellSize}%` : `${cellSize}%`;
-            el.style.height = b.type === 'v' ? `${b.size * cellSize}%` : `${cellSize}%`;
-            el.style.left = `${b.col * cellSize}%`;
-            el.style.top = `${b.row * cellSize}%`;
-        }
-
-        function moveBlock(b) {
-            // Простейшее циклическое перемещение для симуляции игры при клике
-            if (b.type === 'h') {
-                if (b.col + b.size < 6) {
-                    b.col += 1;
-                } else {
-                    b.col = 0;
-                }
-            } else if (b.type === 'v') {
-                if (b.row + b.size < 6) {
-                    b.row += 1;
-                } else {
-                    b.row = 0;
-                }
-            }
-
-            const el = document.getElementById(`block-${b.id}`);
-            updateBlockPosition(el, b);
-            playSynthBeep(300, 0.05);
-
-            // Проверка победы (Ключ дошел до правого края: row 2, col 4)
-            const keyBlock = state.puzzleBlocks.find(x => x.id === 'key');
-            if (keyBlock.col >= 4) {
-                clearInterval(state.miniGameTimerInterval);
-                state.isMiniGameActive = false;
-                showToast("Победа! Вы добыли Золотой Ключ! 🔑 +150,000 монет");
-                state.balance += 150000;
+                startTimer();
+                startSpeedSim();
                 updateUI();
-                closeMiniGame();
-                playWinMelody();
-            }
+            }, 2100);
         }
 
-        function startMiniGameTimer() {
-            if (state.isMiniGameActive) return;
-            state.isMiniGameActive = true;
-            state.miniGameTimeLeft = 30;
+        function disconnect() {
+            state.status = 'DISCONNECTING';
+            updateUI();
+            
+            clearInterval(state.timerInterval);
+            clearInterval(state.speedInterval);
+            state.timer = 0;
 
-            // Возврат позиций по умолчанию
-            state.puzzleBlocks = [
-                { id: 'key', type: 'h', row: 2, col: 0, size: 2, color: 'bg-gradient-to-r from-hk-gold to-yellow-600', icon: '🔑' },
-                { id: 'o1', type: 'v', row: 0, col: 3, size: 3, color: 'bg-hk-red' },
-                { id: 'o2', type: 'v', row: 2, col: 4, size: 2, color: 'bg-hk-green' },
-                { id: 'o3', type: 'h', row: 4, col: 1, size: 2, color: 'bg-slate-700' }
-            ];
-            initMiniGameLayout();
-
-            state.miniGameTimerInterval = setInterval(() => {
-                state.miniGameTimeLeft--;
-                document.getElementById('minigame-timer-label').innerText = `Время: ${state.miniGameTimeLeft}с`;
-                
-                if (state.miniGameTimeLeft <= 0) {
-                    clearInterval(state.miniGameTimerInterval);
-                    state.isMiniGameActive = false;
-                    showToast("Время истекло! Попробуйте снова.");
-                    playSynthBeep(120, 0.4);
-                }
+            appendLog("Отключение от шлюза...");
+            
+            setTimeout(() => {
+                state.status = 'DISCONNECTED';
+                appendLog("Туннель закрыт. Безопасный режим отключен.");
+                playBeep(150, 0.2);
+                updateUI();
             }, 1000);
         }
 
-        // --- ОБНОВЛЕНИЕ UI ---
         function updateUI() {
-            const balanceInt = Math.floor(state.balance);
-            document.getElementById('balance-display').innerText = formatCompact(balanceInt);
+            const btn = document.getElementById('vpn-main-btn');
+            const statusInd = document.getElementById('status-indicator');
+            const statusTxt = document.getElementById('status-text');
+            const glow = document.getElementById('button-glow');
+            const btnLabel = document.getElementById('btn-label-status');
+            const btnSub = document.getElementById('btn-label-sub');
+            const rings = document.querySelectorAll('.pulse-element');
+            const urlInput = document.getElementById('proxy-url-input');
+            const goBtn = document.getElementById('proxy-go-btn');
+            const iframe = document.getElementById('proxy-iframe');
+            const placeholder = document.getElementById('proxy-placeholder');
 
-            // Поиск уровня
-            const currentLvl = state.levels.find(l => balanceInt >= l.min && balanceInt < l.max) || state.levels[0];
-            const lvlIndex = state.levels.indexOf(currentLvl) + 1;
+            if (state.status === 'DISCONNECTED') {
+                btn.className = "relative w-32 h-32 rounded-full bg-vpn-panel border-4 border-vpn-red shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-white";
+                statusInd.className = "w-1.5 h-1.5 rounded-full bg-vpn-red";
+                statusTxt.className = "text-[10px] font-bold uppercase text-vpn-red";
+                statusTxt.innerText = "DISCONNECTED";
+                glow.className = "absolute w-52 h-52 rounded-full bg-vpn-red/5 blur-3xl -z-10 transition-all duration-500";
+                btnLabel.innerText = "CONNECT";
+                btnLabel.className = "text-[10px] font-black tracking-widest text-vpn-red uppercase";
+                btnSub.innerText = "TAP TO START";
+                
+                rings.forEach(r => r.classList.add('hidden'));
+                
+                urlInput.disabled = true;
+                urlInput.placeholder = "Сначала подключите VPN...";
+                urlInput.className = "flex-1 bg-vpn-panel border border-vpn-border rounded-lg px-3 py-2 text-xs text-slate-500 placeholder-vpn-textMuted";
+                goBtn.disabled = true;
+                goBtn.className = "bg-vpn-border text-slate-500 font-bold text-xs px-4 rounded-lg cursor-not-allowed";
+                
+                iframe.classList.add('hidden');
+                placeholder.classList.remove('hidden');
 
-            document.getElementById('league-name').innerText = currentLvl.name;
-            document.getElementById('league-level-indicator').innerText = `Лига ${currentLvl.name} (${lvlIndex}/${state.levels.length})`;
+                document.getElementById('speed-down').innerText = "0.00 Mbps";
+                document.getElementById('connection-timer').innerText = "00:00:00";
+            } 
+            else if (state.status === 'CONNECTING') {
+                btn.className = "relative w-32 h-32 rounded-full bg-vpn-panel border-4 border-yellow-500 shadow-2xl flex flex-col items-center justify-center cursor-pointer animate-pulse";
+                statusInd.className = "w-1.5 h-1.5 rounded-full bg-yellow-500";
+                statusTxt.className = "text-[10px] font-bold uppercase text-yellow-500";
+                statusTxt.innerText = "CONNECTING...";
+                btnLabel.innerText = "WAIT";
+                btnLabel.className = "text-[10px] font-black tracking-widest text-yellow-500 uppercase";
+                btnSub.innerText = "ESTABLISHING...";
+            } 
+            else if (state.status === 'CONNECTED') {
+                btn.className = "relative w-32 h-32 rounded-full bg-vpn-panel border-4 border-vpn-cyan shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-white";
+                statusInd.className = "w-1.5 h-1.5 rounded-full bg-vpn-cyan";
+                statusTxt.className = "text-[10px] font-bold uppercase text-vpn-cyan";
+                statusTxt.innerText = "CONNECTED";
+                glow.className = "absolute w-52 h-52 rounded-full bg-vpn-cyan/10 blur-3xl -z-10 transition-all duration-500";
+                btnLabel.innerText = "DISCONNECT";
+                btnLabel.className = "text-[10px] font-black tracking-widest text-vpn-cyan uppercase";
+                btnSub.innerText = "TUNNEL RUNNING";
+                
+                rings.forEach(r => {
+                    r.classList.remove('hidden');
+                    r.classList.replace('bg-vpn-red/20', 'bg-vpn-cyan/20');
+                    r.classList.replace('bg-vpn-red/10', 'bg-vpn-cyan/10');
+                });
 
-            // Прогресс бар Лиги
-            if (currentLvl.max !== Infinity) {
-                const totalRequired = currentLvl.max - currentLvl.min;
-                const earnedInLvl = balanceInt - currentLvl.min;
-                const percent = Math.min(100, Math.round((earnedInLvl / totalRequired) * 100));
+                urlInput.disabled = false;
+                urlInput.placeholder = "Введите URL (например: google.com)...";
+                urlInput.className = "flex-1 bg-vpn-panel border border-vpn-border rounded-lg px-3 py-2 text-xs text-white placeholder-vpn-textMuted focus:border-vpn-cyan transition-colors";
+                goBtn.disabled = false;
+                goBtn.className = "bg-vpn-cyan text-slate-950 font-bold text-xs px-4 rounded-lg cursor-pointer hover:bg-white";
+                
+                placeholder.classList.add('hidden');
+                iframe.classList.remove('hidden');
+                iframe.src = "about:blank";
+                iframe.contentWindow.document.write("<body style='background:#000;color:#64748b;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-size:10px;'>READY FOR SECURE BROWSING.</body>");
+            }
+            else if (state.status === 'DISCONNECTING') {
+                btn.className = "relative w-32 h-32 rounded-full bg-vpn-panel border-4 border-yellow-500 shadow-2xl flex flex-col items-center justify-center cursor-pointer animate-pulse";
+                statusInd.className = "w-1.5 h-1.5 rounded-full bg-yellow-500";
+                statusTxt.className = "text-[10px] font-bold uppercase text-yellow-500";
+                statusTxt.innerText = "DISCONNECTING...";
+            }
+        }
 
-                document.getElementById('league-percent-indicator').innerText = `${percent}%`;
-                document.getElementById('league-progress-bar').style.width = `${percent}%`;
-                document.getElementById('stat-up-limit').innerText = formatCompact(currentLvl.max);
-            } else {
-                document.getElementById('league-percent-indicator').innerText = "100%";
-                document.getElementById('league-progress-bar').style.width = "100%";
-                document.getElementById('stat-up-limit').innerText = "MAX";
+        function startTimer() {
+            state.timerInterval = setInterval(() => {
+                state.timer++;
+                const hrs = String(Math.floor(state.timer / 3600)).padStart(2, '0');
+                const mins = String(Math.floor((state.timer % 3600) / 60)).padStart(2, '0');
+                const secs = String(state.timer % 60).padStart(2, '0');
+                document.getElementById('connection-timer').innerText = `${hrs}:${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function startSpeedSim() {
+            state.speedInterval = setInterval(() => {
+                const speed = (15 + Math.random() * 30).toFixed(2);
+                document.getElementById('speed-down').innerText = `${speed} Mbps`;
+            }, 2000);
+        }
+
+        function loadPage() {
+            let url = document.getElementById('proxy-url-input').value.trim();
+            if (!url) return;
+
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
             }
 
-            // Главные карточки шапки
-            document.getElementById('stat-earn-tap').innerText = `+${state.earnedPerTap}`;
-            document.getElementById('stat-pph').innerText = `+${formatCompact(state.profitPerHour)}`;
-            document.getElementById('energy-counter').innerText = `${Math.floor(state.currentEnergy)} / ${state.maxEnergy}`;
+            appendLog(`Запрос через прокси: ${url}`);
+            const iframe = document.getElementById('proxy-iframe');
+            
+            // Выбираем прокси-сервер (публичный или ваш приватный в Cloudflare)
+            let proxyUrl = state.proxyType === 'public' 
+                ? state.publicProxyUrl + encodeURIComponent(url)
+                : state.privateProxyUrl + "?url=" + encodeURIComponent(url);
 
-            // Вкладка прокачки (Бусты)
-            const nextMultitapCost = Math.round(2000 * Math.pow(2.2, state.multitapLvl - 1));
-            document.getElementById('boost-multitap-cost').innerText = `Уровень ${state.multitapLvl} • ${formatCompact(nextMultitapCost)} монет`;
-
-            const nextEnergyCost = Math.round(3000 * Math.pow(2, state.energyLvl - 1));
-            document.getElementById('boost-energy-cost').innerText = `Уровень ${state.energyLvl} • ${formatCompact(nextEnergyCost)} монет`;
-
-            document.getElementById('boost-free-energy-counter').innerText = `Доступно: ${state.freeEnergyCount} / 3`;
-            if (state.freeEnergyCount <= 0) {
-                document.getElementById('btn-free-energy').className = "bg-hk-border text-hk-textMuted text-xs font-bold py-1.5 px-4 rounded-xl cursor-not-allowed pointer-events-none";
-            }
-
-            // Обновление чек-листа в Airdrop
-            const checkPph = document.getElementById('airdrop-check-pph');
-            if (state.profitPerHour >= 10000) {
-                checkPph.innerText = "✅ Да";
-                checkPph.className = "text-hk-green text-xs font-bold";
-            } else {
-                checkPph.innerText = "❌ Нет";
-                checkPph.className = "text-hk-red text-xs font-bold";
-            }
-
-            const checkLvl10 = document.getElementById('airdrop-check-lvl10');
-            const hasLvl10Card = state.upgrades.some(u => u.level >= 10);
-            if (hasLvl10Card) {
-                checkLvl10.innerText = "✅ Да";
-                checkLvl10.className = "text-hk-green text-xs font-bold";
-            } else {
-                checkLvl10.innerText = "❌ Нет";
-                checkLvl10.className = "text-hk-red text-xs font-bold";
-            }
-
-            const checkCombo = document.getElementById('airdrop-check-combo');
-            if (state.comboClaimed) {
-                checkCombo.innerText = "✅ Да";
-                checkCombo.className = "text-hk-green text-xs font-bold";
-            } else {
-                checkCombo.innerText = "❌ Нет";
-                checkCombo.className = "text-hk-red text-xs font-bold";
-            }
-
-            // Обновление количества друзей
-            document.getElementById('friends-count-badge').innerText = `${state.friends.length} друзей`;
+            iframe.src = proxyUrl;
+            
+            iframe.onload = function() {
+                appendLog(`Страница ${url} успешно загружена через облачный туннель.`);
+            };
         }
 
-        // --- УТИЛИТАРНЫЕ ФУНКЦИИ МОДАЛОК ---
-        function openModal(id) {
-            const el = document.getElementById(id);
-            el.classList.remove('pointer-events-none', 'opacity-0');
-        }
-
-        function closeModal(id) {
-            const el = document.getElementById(id);
-            el.classList.add('pointer-events-none', 'opacity-0');
-        }
-
-        function selectExchange(name, icon) {
-            document.getElementById('selected-exchange-name').innerText = name;
-            document.getElementById('selected-exchange-logo').innerText = icon;
-            document.getElementById('selected-exchange-icon').innerText = icon;
-            showToast(`Биржа изменена на ${name}!`);
-            closeModal('exchange-modal');
-        }
-
-        function showToast(text) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-text').innerText = text;
-            t.classList.remove('opacity-0', '-translate-y-12');
-            t.classList.add('opacity-100', 'translate-y-0');
-            setTimeout(() => {
-                t.classList.remove('opacity-100', 'translate-y-0');
-                t.classList.add('opacity-0', '-translate-y-12');
-            }, 2200);
-        }
-
-        function formatCompact(num) {
-            if (num >= 1000000000) return (num / 1000000000).toFixed(2).replace(/\.00$/, '') + 'B';
-            if (num >= 1000000) return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(2).replace(/\.00$/, '') + 'K';
-            return num.toString();
-        }
-
-        // --- ЗВУКОВОЙ ДВИЖОК WEB AUDIO API ---
-        function playSynthBeep(freq, duration) {
+        function playBeep(freq, duration) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
 
-                osc.type = 'triangle'; // мягкий ретро-тон
+                osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
 
                 osc.connect(gain);
@@ -1391,13 +404,6 @@
                 osc.start();
                 osc.stop(audioCtx.currentTime + duration);
             } catch (e) {}
-        }
-
-        function playWinMelody() {
-            playSynthBeep(523.25, 0.1); // До (C5)
-            setTimeout(() => playSynthBeep(659.25, 0.1), 100); // Ми (E5)
-            setTimeout(() => playSynthBeep(783.99, 0.1), 200); // Соль (G5)
-            setTimeout(() => playSynthBeep(1046.50, 0.25), 300); // До (C6)
         }
     </script>
 </body>
