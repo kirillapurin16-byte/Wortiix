@@ -1,0 +1,635 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wortiix Craft: 3D Pocket Edition</title>
+    <!-- Подключаем Three.js для 3D графики -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #70b5ff;
+            font-family: 'Courier New', Courier, monospace, sans-serif;
+        }
+
+        /* 3D холст */
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Прицел по центру */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10;
+        }
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: white;
+            box-shadow: 0 0 2px black;
+        }
+        #crosshair::before { top: 7px; left: 0; width: 16px; height: 2px; }
+        #crosshair::after { top: 0; left: 7px; width: 2px; height: 16px; }
+
+        /* ИНТЕРФЕЙС И КНОПКИ УПРАВЛЕНИЯ */
+        .ui-panel {
+            position: absolute;
+            pointer-events: none;
+            z-index: 20;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+        }
+
+        /* Верхняя панель */
+        .top-ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            pointer-events: auto;
+        }
+
+        .title-badge {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #fff;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: #fff;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Переключатель режимов: Ломать / Строить */
+        .mode-toggle {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #fff;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        .mode-toggle.active {
+            background: #ff4757;
+            border-color: #ff4757;
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+        }
+
+        /* Нижняя панель */
+        .bottom-ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+        }
+
+        /* Виртуальный джойстик (мобильный) */
+        #joystick-container {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            touch-action: none;
+            position: relative;
+        }
+
+        #joystick-handle {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: absolute;
+            transition: transform 0.05s ease;
+        }
+
+        /* Правый блок управления (Прыжок) */
+        .action-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .jump-btn {
+            width: 65px;
+            height: 65px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 3px solid #fff;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        .jump-btn:active {
+            background: #fff;
+            color: #000;
+        }
+
+        /* Хотбар выбора блоков */
+        .hotbar {
+            display: flex;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px;
+            border-radius: 6px;
+            border: 2px solid #333;
+            pointer-events: auto;
+            max-width: 80%;
+            margin: 0 auto;
+        }
+
+        .hotbar-slot {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #555;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .hotbar-slot.selected {
+            border-color: var(--neon-blue, #00f0ff);
+            background: rgba(0, 240, 255, 0.15);
+            box-shadow: 0 0 8px #00f0ff;
+        }
+
+        .slot-tooltip {
+            position: absolute;
+            bottom: 48px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            font-size: 9px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            display: none;
+            white-space: nowrap;
+        }
+        .hotbar-slot:hover .slot-tooltip {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Холст игры -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Прицел -->
+    <div id="crosshair"></div>
+
+    <!-- UI оверлей -->
+    <div class="ui-panel">
+        
+        <!-- Верх -->
+        <div class="top-ui">
+            <div class="title-badge">WORTIIX CRAFT PE</div>
+            <button class="mode-toggle" id="btn-mode">РЕЖИМ: СТРОИТЬ 🧱</button>
+        </div>
+
+        <!-- Низ -->
+        <div class="bottom-ui">
+            <!-- Лево: Джойстик перемещения -->
+            <div id="joystick-container">
+                <div id="joystick-handle"></div>
+            </div>
+
+            <!-- Центр: Хотбар выбора блоков -->
+            <div class="hotbar">
+                <div class="hotbar-slot selected" data-type="1">🧱<span class="slot-tooltip">Трава</span></div>
+                <div class="hotbar-slot" data-type="2">🟫<span class="slot-tooltip">Земля</span></div>
+                <div class="hotbar-slot" data-type="3">⬜<span class="slot-tooltip">Камень</span></div>
+                <div class="hotbar-slot" data-type="4">🪵<span class="slot-tooltip">Дерево</span></div>
+                <div class="hotbar-slot" data-type="5">🍃<span class="slot-tooltip">Листва</span></div>
+                <div class="hotbar-slot" data-type="6">🧱<span class="slot-tooltip">Кирпичи</span></div>
+            </div>
+
+            <!-- Право: Прыжок -->
+            <div class="action-controls">
+                <div class="jump-btn" id="btn-jump">UP</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Инициализация Telegram SDK
+        let tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) {
+            try { tg.expand(); tg.ready(); } catch(e){}
+        }
+
+        // --- ГЕНЕРАЦИЯ ТЕКСТУР НА ЛЕТУ ЧЕРЕЗ CANVAS ---
+        function createNoiseTexture(color1, color2, scale = 16) {
+            const canvas = document.createElement('canvas');
+            canvas.width = scale;
+            canvas.height = scale;
+            const ctx = canvas.getContext('2d');
+            
+            for(let x=0; x<scale; x++) {
+                for(let y=0; y<scale; y++) {
+                    ctx.fillStyle = Math.random() > 0.5 ? color1 : color2;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Текстуры блоков
+        const textures = {
+            grassTop: createNoiseTexture('#55ff55', '#33aa33'),
+            grassSide: createNoiseTexture('#55aa33', '#8b5a2b'),
+            dirt: createNoiseTexture('#8b5a2b', '#5c3a21'),
+            stone: createNoiseTexture('#808080', '#505050'),
+            wood: createNoiseTexture('#d2b48c', '#a0522d'),
+            leaves: createNoiseTexture('#228b22', '#006400'),
+            brick: createNoiseTexture('#b22222', '#8b0000')
+        };
+        // Убираем размытие текстур (стиль пиксель-арт)
+        Object.values(textures).forEach(t => {
+            t.magFilter = THREE.NearestFilter;
+            t.minFilter = THREE.NearestFilter;
+        });
+
+        // Материалы для разных блоков
+        const materials = {
+            1: [ // Трава
+                new THREE.MeshLambertMaterial({ map: textures.grassSide }), // Right
+                new THREE.MeshLambertMaterial({ map: textures.grassSide }), // Left
+                new THREE.MeshLambertMaterial({ map: textures.grassTop }),  // Top
+                new THREE.MeshLambertMaterial({ map: textures.dirt }),      // Bottom
+                new THREE.MeshLambertMaterial({ map: textures.grassSide }), // Front
+                new THREE.MeshLambertMaterial({ map: textures.grassSide })  // Back
+            ],
+            2: new THREE.MeshLambertMaterial({ map: textures.dirt }), // Земля
+            3: new THREE.MeshLambertMaterial({ map: textures.stone }), // Камень
+            4: new THREE.MeshLambertMaterial({ map: textures.wood }), // Дерево
+            5: new THREE.MeshLambertMaterial({ map: textures.leaves, transparent: true, alphaTest: 0.1 }), // Листья
+            6: new THREE.MeshLambertMaterial({ map: textures.brick }) // Кирпич
+        };
+
+        // --- СОЗДАНИЕ ИНИЦИАЛИЗАЦИИ ТРЕХМЕРНОГО МИРА ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#70b5ff');
+        scene.fog = new THREE.FogExp2('#70b5ff', 0.04);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: false });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Свет
+        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(20, 40, 20);
+        scene.add(directionalLight);
+
+        // --- ПАРАМЕТРЫ ФИЗИКИ И ГЕНЕРАЦИИ ---
+        const BLOCK_SIZE = 1;
+        const WORLD_SIZE = 16; // 16x16 воксельный чанк
+        const WORLD_HEIGHT = 8;
+        const worldData = {}; // Карта блоков
+        const blockMeshes = [];
+
+        // Вспомогательный генератор блочной сетки
+        function addBlock(x, y, z, type) {
+            const key = `${x},${y},${z}`;
+            if (worldData[key]) return;
+
+            const geometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+            const material = Array.isArray(materials[type]) ? materials[type] : materials[type];
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z);
+            
+            scene.add(mesh);
+            blockMeshes.push(mesh);
+            worldData[key] = { type, mesh };
+        }
+
+        function removeBlockAt(x, y, z) {
+            const key = `${x},${y},${z}`;
+            if (worldData[key]) {
+                scene.remove(worldData[key].mesh);
+                const index = blockMeshes.indexOf(worldData[key].mesh);
+                if (index > -1) blockMeshes.splice(index, 1);
+                delete worldData[key];
+            }
+        }
+
+        // Генерация ландшафта
+        for(let x = -WORLD_SIZE/2; x < WORLD_SIZE/2; x++) {
+            for(let z = -WORLD_SIZE/2; z < WORLD_SIZE/2; z++) {
+                // Псевдошум для неровностей почвы
+                const height = Math.floor(Math.sin(x * 0.3) * Math.cos(z * 0.3) * 2) + 3;
+                
+                for(let y = 0; y <= height; y++) {
+                    let type = 2; // Земля по умолчанию
+                    if (y === height) type = 1; // Трава сверху
+                    if (y < height - 2) type = 3; // Камень на глубине
+                    addBlock(x, y, z, type);
+                }
+            }
+        }
+
+        // Спавн игрока в центре на безопасной высоте
+        camera.position.set(0, 7, 0);
+
+        // --- УПРАВЛЕНИЕ И СТОЛКНОВЕНИЯ ---
+        let currentBlockType = 1; // Выбранный блок (трава)
+        let isBuildMode = true; // Режим: true - Строить, false - Ломать
+
+        const player = {
+            velocity: new THREE.Vector3(),
+            onGround: false,
+            height: 1.6,
+            radius: 0.35
+        };
+
+        // Направление движения
+        const moveDirection = { forward: 0, right: 0 };
+
+        // Инициализация джойстика
+        const joystickContainer = document.getElementById('joystick-container');
+        const joystickHandle = document.getElementById('joystick-handle');
+        let isJoystickActive = false;
+        let joystickStart = { x: 0, y: 0 };
+
+        joystickContainer.addEventListener('touchstart', (e) => {
+            isJoystickActive = true;
+            joystickStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isJoystickActive) return;
+            const touch = e.touches[0];
+            const dx = touch.clientX - joystickStart.x;
+            const dy = touch.clientY - joystickStart.y;
+            const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40); // Макс отклонение
+            const angle = Math.atan2(dy, dx);
+
+            const handleX = Math.cos(angle) * dist;
+            const handleY = Math.sin(angle) * dist;
+            joystickHandle.style.transform = `translate(${handleX}px, ${handleY}px)`;
+
+            // Конвертируем отклонение в движение
+            moveDirection.forward = -Math.sin(angle) * (dist / 40);
+            moveDirection.right = Math.cos(angle) * (dist / 40);
+        });
+
+        window.addEventListener('touchend', () => {
+            isJoystickActive = false;
+            joystickHandle.style.transform = 'none';
+            moveDirection.forward = 0;
+            moveDirection.right = 0;
+        });
+
+        // Вращение камеры пальцем по экрану
+        let touchStart = { x: 0, y: 0 };
+        let cameraEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+        cameraEuler.setFromQuaternion(camera.quaternion);
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.bottom-ui') || e.target.closest('.top-ui')) return;
+            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isJoystickActive && e.touches.length === 1) return;
+            if (e.target.closest('.bottom-ui') || e.target.closest('.top-ui')) return;
+
+            const touch = e.touches[e.touches.length - 1];
+            const dx = touch.clientX - touchStart.x;
+            const dy = touch.clientY - touchStart.y;
+
+            cameraEuler.y -= dx * 0.005;
+            cameraEuler.x -= dy * 0.005;
+            cameraEuler.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, cameraEuler.x));
+
+            camera.quaternion.setFromEuler(cameraEuler);
+            touchStart = { x: touch.clientX, y: touch.clientY };
+        });
+
+        // --- ЛОГИКА СЛОМАТЬ / СТАВИТЬ БЛОКИ ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(0, 0); // Луч всегда бьет строго по центру экрана
+
+        window.addEventListener('pointerdown', (e) => {
+            // Игнорируем нажатия по интерфейсу
+            if (e.target.closest('.bottom-ui') || e.target.closest('.top-ui') || isJoystickActive) return;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(blockMeshes);
+
+            if (intersects.length > 0 && intersects[0].distance < 5) {
+                const intersect = intersects[0];
+                const position = intersect.object.position;
+
+                if (!isBuildMode) {
+                    // Разрушение
+                    removeBlockAt(position.x, position.y, position.z);
+                    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                } else {
+                    // Строительство (направление нормали)
+                    const normal = intersect.face.normal;
+                    const newX = Math.round(position.x + normal.x);
+                    const newY = Math.round(position.y + normal.y);
+                    const newZ = Math.round(position.z + normal.z);
+
+                    // Проверка, чтобы не поставить блок внутрь игрока
+                    const playerBlockX = Math.round(camera.position.x);
+                    const playerBlockY1 = Math.round(camera.position.y);
+                    const playerBlockY2 = Math.round(camera.position.y - 1);
+                    const playerBlockZ = Math.round(camera.position.z);
+
+                    if (newX === playerBlockX && (newY === playerBlockY1 || newY === playerBlockY2) && newZ === playerBlockZ) {
+                        return; // Не даем замуровать игрока
+                    }
+
+                    addBlock(newX, newY, newZ, currentBlockType);
+                    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                }
+                refreshUI();
+            }
+        });
+
+        // Прыжок кнопкой
+        document.getElementById('btn-jump').addEventListener('pointerdown', () => {
+            if (player.onGround) {
+                player.velocity.y = 0.17;
+                player.onGround = false;
+            }
+        });
+
+        // Переключение режимов: Ломать / Строить
+        const btnMode = document.getElementById('btn-mode');
+        btnMode.addEventListener('click', () => {
+            isBuildMode = !isBuildMode;
+            if (isBuildMode) {
+                btnMode.innerText = "РЕЖИМ: СТРОИТЬ 🧱";
+                btnMode.classList.remove('active');
+            } else {
+                btnMode.innerText = "РЕЖИМ: ЛОМАТЬ ⛏️";
+                btnMode.classList.add('active');
+            }
+        });
+
+        // Хотбар
+        document.querySelectorAll('.hotbar-slot').forEach(slot => {
+            slot.addEventListener('click', () => {
+                document.querySelectorAll('.hotbar-slot').forEach(s => s.classList.remove('selected'));
+                slot.classList.add('selected');
+                currentBlockType = parseInt(slot.getAttribute('data-type'));
+            });
+        });
+
+        // Поддержка ПК клавиатуры (W, A, S, D, Space)
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && player.onGround) {
+                player.velocity.y = 0.17;
+                player.onGround = false;
+            }
+        });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // --- ИГРОВОЙ ЦИКЛ (ФИЗИКА И АНИМАЦИЯ) ---
+        const gravity = -0.008;
+        const speed = 0.08;
+
+        function checkBlockAt(x, y, z) {
+            const rx = Math.round(x);
+            const ry = Math.round(y);
+            const rz = Math.round(z);
+            return !!worldData[`${rx},${ry},${rz}`];
+        }
+
+        function updatePhysics() {
+            // Направление камеры на плоскости XZ
+            const front = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            front.y = 0;
+            front.normalize();
+            
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+            right.y = 0;
+            right.normalize();
+
+            // Сбор векторов управления
+            let inputX = moveDirection.right;
+            let inputZ = moveDirection.forward;
+
+            if (keys['KeyW']) inputZ = 1;
+            if (keys['KeyS']) inputZ = -1;
+            if (keys['KeyA']) inputX = -1;
+            if (keys['KeyD']) inputX = 1;
+
+            const move = new THREE.Vector3()
+                .addScaledVector(front, inputZ)
+                .addScaledVector(right, inputX)
+                .normalize()
+                .multiplyScalar(speed);
+
+            // Симуляция силы тяжести
+            player.velocity.y += gravity;
+
+            // Будущие координаты
+            const nextPos = camera.position.clone().add(move);
+            nextPos.y += player.velocity.y;
+
+            // Проверка коллизий по оси Y (пол)
+            const feetY = nextPos.y - player.height;
+            if (checkBlockAt(nextPos.x, feetY, nextPos.z)) {
+                // Игрок приземлился на блок
+                player.velocity.y = 0;
+                camera.position.y = Math.round(feetY) + 1 + player.height;
+                player.onGround = true;
+            } else {
+                camera.position.y = nextPos.y;
+                player.onGround = false;
+            }
+
+            // Коллизии по осям X и Z (не пускаем сквозь блоки)
+            const midBodyY = camera.position.y - player.height / 2;
+            if (!checkBlockAt(nextPos.x, midBodyY, camera.position.z)) {
+                camera.position.x = nextPos.x;
+            }
+            if (!checkBlockAt(camera.position.x, midBodyY, nextPos.z)) {
+                camera.position.z = nextPos.z;
+            }
+
+            // Границы мира (не даем упасть в бездну)
+            if (camera.position.y < -15) {
+                camera.position.set(0, 10, 0);
+                player.velocity.set(0, 0, 0);
+            }
+        }
+
+        function refreshUI() {
+            // Функция обновления состояния
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updatePhysics();
+            renderer.render(scene, camera);
+        }
+
+        // Адаптация экрана
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Старт игры после загрузки всех элементов
+        window.onload = function() {
+            animate();
+        };
+    </script>
+</body>
+</html>
