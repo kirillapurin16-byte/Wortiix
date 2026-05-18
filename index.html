@@ -1,635 +1,552 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wortiix Craft: 3D Pocket Edition</title>
-    <!-- Подключаем Three.js для 3D графики -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>CS Telegram Edition</title>
+    <!-- Подключаем SDK Телеграма -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #12141c;
+            --panel-color: #1b1e28;
+            --cs-orange: #de9b35;
+            --text-color: #e2e8f0;
+            
+            /* Раритетность скинов */
+            --rarity-covert: #eb4b4b; /* Тайное */
+            --rarity-classified: #d32ce6; /* Засекреченное */
+            --rarity-milspec: #4b69ff; /* Армейское */
+        }
+
         * {
             box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
             margin: 0;
             padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
         }
 
-        body, html {
-            width: 100%;
-            height: 100%;
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
             overflow: hidden;
-            background-color: #70b5ff;
-            font-family: 'Courier New', Courier, monospace, sans-serif;
+            height: 100vh;
         }
 
-        /* 3D холст */
-        #game-canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Прицел по центру */
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 16px;
-            height: 16px;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 10;
-        }
-        #crosshair::before, #crosshair::after {
-            content: '';
-            position: absolute;
-            background: white;
-            box-shadow: 0 0 2px black;
-        }
-        #crosshair::before { top: 7px; left: 0; width: 16px; height: 2px; }
-        #crosshair::after { top: 0; left: 7px; width: 2px; height: 16px; }
-
-        /* ИНТЕРФЕЙС И КНОПКИ УПРАВЛЕНИЯ */
-        .ui-panel {
-            position: absolute;
-            pointer-events: none;
-            z-index: 20;
-            width: 100%;
-            height: 100%;
+        /* --- ЗАСТАВКА В СТИЛЕ CS --- */
+        #intro-screen {
+            position: fixed;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), 
+                        url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000') no-repeat center center;
+            background-size: cover;
+            z-index: 999;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 15px;
+            align-items: center;
+            padding: 50px 20px;
+            transition: opacity 0.8s ease;
         }
 
-        /* Верхняя панель */
-        .top-ui {
+        .cs-logo {
+            text-align: center;
+            margin-top: 20%;
+        }
+
+        .cs-logo h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 5px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(222, 155, 53, 0.6);
+        }
+
+        .cs-logo span {
+            color: var(--cs-orange);
+        }
+
+        .loading-box {
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .loading-text {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background-color: var(--cs-orange);
+            box-shadow: 0 0 10px var(--cs-orange);
+            transition: width 0.1s linear;
+        }
+
+        /* --- ОСНОВНАЯ ИГРА --- */
+        #main-game {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--panel-color);
+            padding: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%;
-            pointer-events: auto;
+            border-bottom: 2px solid #2c313f;
         }
 
-        .title-badge {
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #fff;
-            padding: 6px 12px;
-            font-size: 12px;
-            color: #fff;
+        .user-info h3 {
+            color: var(--cs-orange);
+            font-size: 1.1rem;
+        }
+
+        .balance {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4caf50;
+        }
+
+        /* Вкладки */
+        .nav-tabs {
+            display: flex;
+            background-color: var(--panel-color);
+            border-bottom: 1px solid #2c313f;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 0;
+            background: none;
+            border: none;
+            color: #888;
             font-weight: bold;
             text-transform: uppercase;
-        }
-
-        /* Переключатель режимов: Ломать / Строить */
-        .mode-toggle {
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #fff;
-            color: white;
-            padding: 8px 16px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
+            font-size: 0.85rem;
             cursor: pointer;
-            pointer-events: auto;
-        }
-        .mode-toggle.active {
-            background: #ff4757;
-            border-color: #ff4757;
-            box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+            border-bottom: 3px solid transparent;
         }
 
-        /* Нижняя панель */
-        .bottom-ui {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            width: 100%;
+        .tab-btn.active {
+            color: var(--cs-orange);
+            border-bottom-color: var(--cs-orange);
+            background-color: rgba(222, 155, 53, 0.05);
         }
 
-        /* Виртуальный джойстик (мобильный) */
-        #joystick-container {
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 3px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-            touch-action: none;
-            position: relative;
+        .tab-content {
+            flex: 1;
+            display: none;
+            overflow-y: auto;
+            padding: 20px;
         }
 
-        #joystick-handle {
-            width: 45px;
-            height: 45px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            position: absolute;
-            transition: transform 0.05s ease;
+        .tab-content.active {
+            display: block;
         }
 
-        /* Правый блок управления (Прыжок) */
-        .action-controls {
+        /* Кликер / Кейсы */
+        .clicker-container {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            pointer-events: auto;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 30px;
         }
 
-        .jump-btn {
-            width: 65px;
-            height: 65px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 3px solid #fff;
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
+        .case-target {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(222,155,53,0.2) 0%, rgba(0,0,0,0) 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            transition: transform 0.1s ease;
         }
-        .jump-btn:active {
-            background: #fff;
+
+        .case-target:active {
+            transform: scale(0.95);
+        }
+
+        .case-target img {
+            width: 150px;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+        }
+
+        .btn-main {
+            background-color: var(--cs-orange);
             color: #000;
-        }
-
-        /* Хотбар выбора блоков */
-        .hotbar {
-            display: flex;
-            gap: 6px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 6px;
-            border-radius: 6px;
-            border: 2px solid #333;
-            pointer-events: auto;
-            max-width: 80%;
-            margin: 0 auto;
-        }
-
-        .hotbar-slot {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.1);
-            border: 2px solid #555;
+            border: none;
+            padding: 12px 30px;
+            font-weight: bold;
             border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            text-transform: uppercase;
             cursor: pointer;
-            font-size: 18px;
+            box-shadow: 0 4px 15px rgba(222, 155, 53, 0.3);
+        }
+
+        /* Сетка инвентаря */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .skin-card {
+            background-color: var(--panel-color);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            border-bottom: 4px solid var(--rarity-milspec);
             position: relative;
         }
 
-        .hotbar-slot.selected {
-            border-color: var(--neon-blue, #00f0ff);
-            background: rgba(0, 240, 255, 0.15);
-            box-shadow: 0 0 8px #00f0ff;
+        .skin-card.covert { border-bottom-color: var(--rarity-covert); }
+        .skin-card.classified { border-bottom-color: var(--rarity-classified); }
+        .skin-card.milspec { border-bottom-color: var(--rarity-milspec); }
+
+        .skin-card img {
+            width: 80%;
+            margin: 10px 0;
         }
 
-        .slot-tooltip {
-            position: absolute;
-            bottom: 48px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            font-size: 9px;
-            padding: 3px 6px;
-            border-radius: 3px;
-            display: none;
+        .skin-name {
+            font-size: 0.85rem;
+            font-weight: bold;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .hotbar-slot:hover .slot-tooltip {
-            display: block;
+
+        .skin-price {
+            font-size: 0.8rem;
+            color: #4caf50;
+            margin-top: 5px;
+        }
+
+        /* Трейд Зона */
+        .trade-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .trade-slots {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            min-height: 100px;
+            background: rgba(0,0,0,0.2);
+            border: 2px dashed #333;
+            border-radius: 6px;
+            padding: 10px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .trade-info-text {
+            font-size: 0.85rem;
+            color: #aaa;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <!-- 3D Холст игры -->
-    <canvas id="game-canvas"></canvas>
-
-    <!-- Прицел -->
-    <div id="crosshair"></div>
-
-    <!-- UI оверлей -->
-    <div class="ui-panel">
-        
-        <!-- Верх -->
-        <div class="top-ui">
-            <div class="title-badge">WORTIIX CRAFT PE</div>
-            <button class="mode-toggle" id="btn-mode">РЕЖИМ: СТРОИТЬ 🧱</button>
+    <!-- ЗАСТАВКА CS -->
+    <div id="intro-screen">
+        <div class="cs-logo">
+            <h1>CS<span>:GO</span></h1>
+            <p style="color: #aaa; letter-spacing: 2px; font-size: 0.8rem;">TELEGRAM MINI APP</p>
         </div>
-
-        <!-- Низ -->
-        <div class="bottom-ui">
-            <!-- Лево: Джойстик перемещения -->
-            <div id="joystick-container">
-                <div id="joystick-handle"></div>
-            </div>
-
-            <!-- Центр: Хотбар выбора блоков -->
-            <div class="hotbar">
-                <div class="hotbar-slot selected" data-type="1">🧱<span class="slot-tooltip">Трава</span></div>
-                <div class="hotbar-slot" data-type="2">🟫<span class="slot-tooltip">Земля</span></div>
-                <div class="hotbar-slot" data-type="3">⬜<span class="slot-tooltip">Камень</span></div>
-                <div class="hotbar-slot" data-type="4">🪵<span class="slot-tooltip">Дерево</span></div>
-                <div class="hotbar-slot" data-type="5">🍃<span class="slot-tooltip">Листва</span></div>
-                <div class="hotbar-slot" data-type="6">🧱<span class="slot-tooltip">Кирпичи</span></div>
-            </div>
-
-            <!-- Право: Прыжок -->
-            <div class="action-controls">
-                <div class="jump-btn" id="btn-jump">UP</div>
+        <div class="loading-box">
+            <div class="loading-text" id="loader-status">Подключение к серверам...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="loader-fill"></div>
             </div>
         </div>
+    </div>
 
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС ИГРЫ -->
+    <div id="main-game">
+        <header>
+            <div class="user-info">
+                <h3 id="username">Игрок</h3>
+            </div>
+            <div class="balance">$<span id="balance-val">0</span></div>
+        </header>
+
+        <!-- Навигация -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('cases')">Кейсы</button>
+            <button class="tab-btn" onclick="switchTab('inventory')">Инвентарь (<span id="inv-count">0</span>)</button>
+            <button class="tab-btn" onclick="switchTab('trade')">Контракт</button>
+        </div>
+
+        <!-- ВКЛАДКА КЕЙСОВ -->
+        <div id="tab-cases" class="tab-content active">
+            <div class="clicker-container">
+                <h2 style="font-size: 1.2rem; text-align: center;">Жми на кейс, чтобы фармить баланс!</h2>
+                <div class="case-target" onclick="clickCase()">
+                    <!-- Картинка кейса CS2 -->
+                    <img src="https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXU5A1PIYQNqhpOSV-fRPas6nGvXFBoLd96uqScfDhp0vGfcm8RvN_mxtSOx6SgMOmFwGgBuZ0gi7vE89Sj3gXnr0RtYm_1cofBcVM8ZAnQ8gK2kO7v0JS0tJSfznE27HI8pSGKIonN7g" alt="CS Case">
+                </div>
+                <button class="btn-main" onclick="openCase()">Открыть Кейс ($100)</button>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА ИНВЕНТАРЯ -->
+        <div id="tab-inventory" class="tab-content">
+            <div class="inventory-grid" id="inventory-list">
+                <!-- Сюда падают скины -->
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА ТРЕЙДА (КОНТРАКТЫ) -->
+        <div id="tab-trade" class="tab-content">
+            <div class="trade-container">
+                <h3 style="text-align: center;">Контракт обмена (Трейд с Ботом)</h3>
+                <p class="trade-info-text">Положите 3 любых скина, чтобы выменять у бота 1 случайный скин уровнем ВЫШЕ!</p>
+                
+                <div class="trade-slots" id="trade-slots-area">
+                    <!-- Выбранные для трейда скины -->
+                     <div style="color: #555; grid-column: span 3;">Выберите скины из инвентаря ниже</div>
+                </div>
+
+                <button class="btn-main" style="width: 100%;" onclick="executeTrade()">Запустить контракт</button>
+
+                <h4 style="margin-top: 10px;">Доступно для обмена:</h4>
+                <div class="inventory-grid" id="trade-available-list"></div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Инициализация Telegram SDK
-        let tg = window.Telegram ? window.Telegram.WebApp : null;
-        if (tg) {
-            try { tg.expand(); tg.ready(); } catch(e){}
+        // Инициализация Telegram WebApp API
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Раскрываем на весь экран
+
+        // Установка имени пользователя из TG
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
         }
 
-        // --- ГЕНЕРАЦИЯ ТЕКСТУР НА ЛЕТУ ЧЕРЕЗ CANVAS ---
-        function createNoiseTexture(color1, color2, scale = 16) {
-            const canvas = document.createElement('canvas');
-            canvas.width = scale;
-            canvas.height = scale;
-            const ctx = canvas.getContext('2d');
-            
-            for(let x=0; x<scale; x++) {
-                for(let y=0; y<scale; y++) {
-                    ctx.fillStyle = Math.random() > 0.5 ? color1 : color2;
-                    ctx.fillRect(x, y, 1, 1);
-                }
-            }
-            return new THREE.CanvasTexture(canvas);
-        }
-
-        // Текстуры блоков
-        const textures = {
-            grassTop: createNoiseTexture('#55ff55', '#33aa33'),
-            grassSide: createNoiseTexture('#55aa33', '#8b5a2b'),
-            dirt: createNoiseTexture('#8b5a2b', '#5c3a21'),
-            stone: createNoiseTexture('#808080', '#505050'),
-            wood: createNoiseTexture('#d2b48c', '#a0522d'),
-            leaves: createNoiseTexture('#228b22', '#006400'),
-            brick: createNoiseTexture('#b22222', '#8b0000')
-        };
-        // Убираем размытие текстур (стиль пиксель-арт)
-        Object.values(textures).forEach(t => {
-            t.magFilter = THREE.NearestFilter;
-            t.minFilter = THREE.NearestFilter;
-        });
-
-        // Материалы для разных блоков
-        const materials = {
-            1: [ // Трава
-                new THREE.MeshLambertMaterial({ map: textures.grassSide }), // Right
-                new THREE.MeshLambertMaterial({ map: textures.grassSide }), // Left
-                new THREE.MeshLambertMaterial({ map: textures.grassTop }),  // Top
-                new THREE.MeshLambertMaterial({ map: textures.dirt }),      // Bottom
-                new THREE.MeshLambertMaterial({ map: textures.grassSide }), // Front
-                new THREE.MeshLambertMaterial({ map: textures.grassSide })  // Back
+        // Состояние игры (Данные)
+        let gameState = {
+            balance: 500,
+            inventory: [
+                { id: 1, name: "AK-47 | Элитное снаряжение", rarity: "milspec", price: 15, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IAtVv7WpKwVk3_33fDxQ69Szkb-Yg_P4O7fXmFRV7cZ3i-vE896giwO1rhE-N2v6J9XAcAI-aAnW8ljvxey7g5C1vJzKy3Fk7HQg7XfD30vg_vXkXg" }
             ],
-            2: new THREE.MeshLambertMaterial({ map: textures.dirt }), // Земля
-            3: new THREE.MeshLambertMaterial({ map: textures.stone }), // Камень
-            4: new THREE.MeshLambertMaterial({ map: textures.wood }), // Дерево
-            5: new THREE.MeshLambertMaterial({ map: textures.leaves, transparent: true, alphaTest: 0.1 }), // Листья
-            6: new THREE.MeshLambertMaterial({ map: textures.brick }) // Кирпич
+            tradeSelected: []
         };
 
-        // --- СОЗДАНИЕ ИНИЦИАЛИЗАЦИИ ТРЕХМЕРНОГО МИРА ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color('#70b5ff');
-        scene.fog = new THREE.FogExp2('#70b5ff', 0.04);
+        // База доступных скинов для дропа
+        const skinPool = [
+            { name: "M4A4 | Магний", rarity: "milspec", price: 12, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IFVSuLOkKAVf2PCfJG0R79Szkb-Yg_P4O7fXmFRV7cZ3i-vE89-j0wawqBA-Ym_1cI6UdwI4NArT_Ffqw7-70cS87ZzAn3Uws3Jw4SmdgVXz1itgZ_Y" },
+            { name: "AWP | Капилляр", rarity: "milspec", price: 25, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IAtdv7WpLA9h7v_3fDxQ69Szkb-Yg_P4O7fXmFRV7cZ3i-vE89-h2wS1_0ZvNTjzd9CQJg9vYFrUrw65m9OgpA" },
+            { name: "AK-47 | Легион Анубиса", rarity: "classified", price: 85, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IKVev7upLwku186YInMXu9mzkb-Ch_b7MrbUqWdY781lxOiS8In33wXiqkpkMTzzJtDHJwE4YF7Q_VfoxO7ohpDuusvInXU2pGB8slvV7bE" },
+            { name: "M4A1-S | Поток информации", rarity: "covert", price: 320, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IAtcvL-gKAVf1Pr3fDxQ69Szkb-KhKbyNrrXl3lU18h0itbN_Iv9nBrm_0U-YGugI4DHJwVtZAnR_wK2kPC70ZS67cidnXM273N25SmdgVXz1hhp0mB" },
+            { name: "Нож Керамбит | Волны", rarity: "covert", price: 1200, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4Ymh6UeXFLUv93ufsc6fAt7IKVv5OnxKAVl3vmYIG8Su9mKzdHawn6tYeuIzj0BsZZ03-vE89X20ALtr0BlZmr3co7EcQE_NwvYrla-w7q9m9bi60A5zFA" }
+        ];
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: false });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-
-        // Свет
-        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.6);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(20, 40, 20);
-        scene.add(directionalLight);
-
-        // --- ПАРАМЕТРЫ ФИЗИКИ И ГЕНЕРАЦИИ ---
-        const BLOCK_SIZE = 1;
-        const WORLD_SIZE = 16; // 16x16 воксельный чанк
-        const WORLD_HEIGHT = 8;
-        const worldData = {}; // Карта блоков
-        const blockMeshes = [];
-
-        // Вспомогательный генератор блочной сетки
-        function addBlock(x, y, z, type) {
-            const key = `${x},${y},${z}`;
-            if (worldData[key]) return;
-
-            const geometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-            const material = Array.isArray(materials[type]) ? materials[type] : materials[type];
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(x, y, z);
+        // Имитация загрузки CS
+        window.addEventListener('DOMContentLoaded', () => {
+            let progress = 0;
+            const fill = document.getElementById('loader-fill');
+            const status = document.getElementById('loader-status');
             
-            scene.add(mesh);
-            blockMeshes.push(mesh);
-            worldData[key] = { type, mesh };
-        }
-
-        function removeBlockAt(x, y, z) {
-            const key = `${x},${y},${z}`;
-            if (worldData[key]) {
-                scene.remove(worldData[key].mesh);
-                const index = blockMeshes.indexOf(worldData[key].mesh);
-                if (index > -1) blockMeshes.splice(index, 1);
-                delete worldData[key];
-            }
-        }
-
-        // Генерация ландшафта
-        for(let x = -WORLD_SIZE/2; x < WORLD_SIZE/2; x++) {
-            for(let z = -WORLD_SIZE/2; z < WORLD_SIZE/2; z++) {
-                // Псевдошум для неровностей почвы
-                const height = Math.floor(Math.sin(x * 0.3) * Math.cos(z * 0.3) * 2) + 3;
+            const stages = ["Загрузка ресурсов...", "Проверка шейдеров...", "Синхронизация инвентаря...", "Готово!"];
+            
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if (progress > 100) progress = 100;
                 
-                for(let y = 0; y <= height; y++) {
-                    let type = 2; // Земля по умолчанию
-                    if (y === height) type = 1; // Трава сверху
-                    if (y < height - 2) type = 3; // Камень на глубине
-                    addBlock(x, y, z, type);
+                fill.style.width = `${progress}%`;
+                
+                if(progress < 30) status.innerText = stages[0];
+                else if(progress < 60) status.innerText = stages[1];
+                else if(progress < 90) status.innerText = stages[2];
+                else status.innerText = stages[3];
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('intro-screen').style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById('intro-screen').style.display = 'none';
+                            document.getElementById('main-game').style.display = 'flex';
+                            updateUI();
+                        }, 800);
+                    }, 500);
                 }
-            }
+            }, 150);
+        });
+
+        // Обновление интерфейса
+        function updateUI() {
+            document.getElementById('balance-val').innerText = gameState.balance;
+            document.getElementById('inv-count').innerText = gameState.inventory.length;
+            renderInventory();
+            renderTradeLists();
         }
 
-        // Спавн игрока в центре на безопасной высоте
-        camera.position.set(0, 7, 0);
-
-        // --- УПРАВЛЕНИЕ И СТОЛКНОВЕНИЯ ---
-        let currentBlockType = 1; // Выбранный блок (трава)
-        let isBuildMode = true; // Режим: true - Строить, false - Ломать
-
-        const player = {
-            velocity: new THREE.Vector3(),
-            onGround: false,
-            height: 1.6,
-            radius: 0.35
-        };
-
-        // Направление движения
-        const moveDirection = { forward: 0, right: 0 };
-
-        // Инициализация джойстика
-        const joystickContainer = document.getElementById('joystick-container');
-        const joystickHandle = document.getElementById('joystick-handle');
-        let isJoystickActive = false;
-        let joystickStart = { x: 0, y: 0 };
-
-        joystickContainer.addEventListener('touchstart', (e) => {
-            isJoystickActive = true;
-            joystickStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (!isJoystickActive) return;
-            const touch = e.touches[0];
-            const dx = touch.clientX - joystickStart.x;
-            const dy = touch.clientY - joystickStart.y;
-            const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40); // Макс отклонение
-            const angle = Math.atan2(dy, dx);
-
-            const handleX = Math.cos(angle) * dist;
-            const handleY = Math.sin(angle) * dist;
-            joystickHandle.style.transform = `translate(${handleX}px, ${handleY}px)`;
-
-            // Конвертируем отклонение в движение
-            moveDirection.forward = -Math.sin(angle) * (dist / 40);
-            moveDirection.right = Math.cos(angle) * (dist / 40);
-        });
-
-        window.addEventListener('touchend', () => {
-            isJoystickActive = false;
-            joystickHandle.style.transform = 'none';
-            moveDirection.forward = 0;
-            moveDirection.right = 0;
-        });
-
-        // Вращение камеры пальцем по экрану
-        let touchStart = { x: 0, y: 0 };
-        let cameraEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-        cameraEuler.setFromQuaternion(camera.quaternion);
-
-        window.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.bottom-ui') || e.target.closest('.top-ui')) return;
-            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (isJoystickActive && e.touches.length === 1) return;
-            if (e.target.closest('.bottom-ui') || e.target.closest('.top-ui')) return;
-
-            const touch = e.touches[e.touches.length - 1];
-            const dx = touch.clientX - touchStart.x;
-            const dy = touch.clientY - touchStart.y;
-
-            cameraEuler.y -= dx * 0.005;
-            cameraEuler.x -= dy * 0.005;
-            cameraEuler.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, cameraEuler.x));
-
-            camera.quaternion.setFromEuler(cameraEuler);
-            touchStart = { x: touch.clientX, y: touch.clientY };
-        });
-
-        // --- ЛОГИКА СЛОМАТЬ / СТАВИТЬ БЛОКИ ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(0, 0); // Луч всегда бьет строго по центру экрана
-
-        window.addEventListener('pointerdown', (e) => {
-            // Игнорируем нажатия по интерфейсу
-            if (e.target.closest('.bottom-ui') || e.target.closest('.top-ui') || isJoystickActive) return;
-
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(blockMeshes);
-
-            if (intersects.length > 0 && intersects[0].distance < 5) {
-                const intersect = intersects[0];
-                const position = intersect.object.position;
-
-                if (!isBuildMode) {
-                    // Разрушение
-                    removeBlockAt(position.x, position.y, position.z);
-                    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-                } else {
-                    // Строительство (направление нормали)
-                    const normal = intersect.face.normal;
-                    const newX = Math.round(position.x + normal.x);
-                    const newY = Math.round(position.y + normal.y);
-                    const newZ = Math.round(position.z + normal.z);
-
-                    // Проверка, чтобы не поставить блок внутрь игрока
-                    const playerBlockX = Math.round(camera.position.x);
-                    const playerBlockY1 = Math.round(camera.position.y);
-                    const playerBlockY2 = Math.round(camera.position.y - 1);
-                    const playerBlockZ = Math.round(camera.position.z);
-
-                    if (newX === playerBlockX && (newY === playerBlockY1 || newY === playerBlockY2) && newZ === playerBlockZ) {
-                        return; // Не даем замуровать игрока
-                    }
-
-                    addBlock(newX, newY, newZ, currentBlockType);
-                    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                }
-                refreshUI();
-            }
-        });
-
-        // Прыжок кнопкой
-        document.getElementById('btn-jump').addEventListener('pointerdown', () => {
-            if (player.onGround) {
-                player.velocity.y = 0.17;
-                player.onGround = false;
-            }
-        });
-
-        // Переключение режимов: Ломать / Строить
-        const btnMode = document.getElementById('btn-mode');
-        btnMode.addEventListener('click', () => {
-            isBuildMode = !isBuildMode;
-            if (isBuildMode) {
-                btnMode.innerText = "РЕЖИМ: СТРОИТЬ 🧱";
-                btnMode.classList.remove('active');
-            } else {
-                btnMode.innerText = "РЕЖИМ: ЛОМАТЬ ⛏️";
-                btnMode.classList.add('active');
-            }
-        });
-
-        // Хотбар
-        document.querySelectorAll('.hotbar-slot').forEach(slot => {
-            slot.addEventListener('click', () => {
-                document.querySelectorAll('.hotbar-slot').forEach(s => s.classList.remove('selected'));
-                slot.classList.add('selected');
-                currentBlockType = parseInt(slot.getAttribute('data-type'));
-            });
-        });
-
-        // Поддержка ПК клавиатуры (W, A, S, D, Space)
-        const keys = {};
-        window.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.code === 'Space' && player.onGround) {
-                player.velocity.y = 0.17;
-                player.onGround = false;
-            }
-        });
-        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-
-        // --- ИГРОВОЙ ЦИКЛ (ФИЗИКА И АНИМАЦИЯ) ---
-        const gravity = -0.008;
-        const speed = 0.08;
-
-        function checkBlockAt(x, y, z) {
-            const rx = Math.round(x);
-            const ry = Math.round(y);
-            const rz = Math.round(z);
-            return !!worldData[`${rx},${ry},${rz}`];
-        }
-
-        function updatePhysics() {
-            // Направление камеры на плоскости XZ
-            const front = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            front.y = 0;
-            front.normalize();
+        // Переключение вкладок
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
-            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-            right.y = 0;
-            right.normalize();
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
 
-            // Сбор векторов управления
-            let inputX = moveDirection.right;
-            let inputZ = moveDirection.forward;
+        // Клик по кейсу (добыча валюты)
+        function clickCase() {
+            gameState.balance += 5;
+            // Лёгкая вибрация телефона при клике через TG SDK
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            updateUI();
+        }
 
-            if (keys['KeyW']) inputZ = 1;
-            if (keys['KeyS']) inputZ = -1;
-            if (keys['KeyA']) inputX = -1;
-            if (keys['KeyD']) inputX = 1;
+        // Открытие кейса
+        function openCase() {
+            if (gameState.balance < 100) {
+                alert("Недостаточно денег! Покликай на кейс.");
+                return;
+            }
+            
+            gameState.balance -= 100;
+            
+            // Алгоритм шансов дропа
+            const rand = Math.random() * 100;
+            let droppedSkin;
+            
+            if (rand < 65) droppedSkin = skinPool[Math.floor(Math.random() * 2)]; // 65% Milspec
+            else if (rand < 90) droppedSkin = skinPool[2]; // 25% Classified
+            else droppedSkin = skinPool[3 + Math.floor(Math.random() * 2)]; // 10% Covert/Knife
+            
+            const newSkin = { ...droppedSkin, id: Date.now() };
+            gameState.inventory.push(newSkin);
+            
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            alert(`🎉 Вы выбили: ${newSkin.name} ($${newSkin.price})`);
+            updateUI();
+        }
 
-            const move = new THREE.Vector3()
-                .addScaledVector(front, inputZ)
-                .addScaledVector(right, inputX)
-                .normalize()
-                .multiplyScalar(speed);
+        // Рендер инвентаря
+        function renderInventory() {
+            const container = document.getElementById('inventory-list');
+            container.innerHTML = '';
+            
+            if(gameState.inventory.length === 0) {
+                container.innerHTML = '<p style="grid-column: span 2; text-align:center; color:#555;">Инвентарь пуст</p>';
+                return;
+            }
 
-            // Симуляция силы тяжести
-            player.velocity.y += gravity;
+            gameState.inventory.forEach(skin => {
+                const card = document.createElement('div');
+                card.className = `skin-card ${skin.rarity}`;
+                card.innerHTML = `
+                    <img src="${skin.img}">
+                    <div class="skin-name">${skin.name}</div>
+                    <div class="skin-price">$${skin.price}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
 
-            // Будущие координаты
-            const nextPos = camera.position.clone().add(move);
-            nextPos.y += player.velocity.y;
+        // Логика контракта (Трейда)
+        function renderTradeLists() {
+            const availableContainer = document.getElementById('trade-available-list');
+            const slotsContainer = document.getElementById('trade-slots-area');
+            
+            availableContainer.innerHTML = '';
+            
+            // Фильтруем те, что уже не в трейде
+            const availableSkins = gameState.inventory.filter(s => !gameState.tradeSelected.includes(s.id));
+            
+            availableSkins.forEach(skin => {
+                const card = document.createElement('div');
+                card.className = `skin-card ${skin.rarity}`;
+                card.style.cursor = 'pointer';
+                card.innerHTML = `
+                    <img src="${skin.img}">
+                    <div class="skin-name">${skin.name}</div>
+                `;
+                card.onclick = () => selectForTrade(skin.id);
+                availableContainer.appendChild(card);
+            });
 
-            // Проверка коллизий по оси Y (пол)
-            const feetY = nextPos.y - player.height;
-            if (checkBlockAt(nextPos.x, feetY, nextPos.z)) {
-                // Игрок приземлился на блок
-                player.velocity.y = 0;
-                camera.position.y = Math.round(feetY) + 1 + player.height;
-                player.onGround = true;
+            // Рендер слотов трейда
+            if (gameState.tradeSelected.length === 0) {
+                slotsContainer.innerHTML = '<div style="color: #555; grid-column: span 3;">Нажмите на скины снизу, чтобы добавить</div>';
             } else {
-                camera.position.y = nextPos.y;
-                player.onGround = false;
-            }
-
-            // Коллизии по осям X и Z (не пускаем сквозь блоки)
-            const midBodyY = camera.position.y - player.height / 2;
-            if (!checkBlockAt(nextPos.x, midBodyY, camera.position.z)) {
-                camera.position.x = nextPos.x;
-            }
-            if (!checkBlockAt(camera.position.x, midBodyY, nextPos.z)) {
-                camera.position.z = nextPos.z;
-            }
-
-            // Границы мира (не даем упасть в бездну)
-            if (camera.position.y < -15) {
-                camera.position.set(0, 10, 0);
-                player.velocity.set(0, 0, 0);
+                slotsContainer.innerHTML = '';
+                gameState.tradeSelected.forEach(skinId => {
+                    const skin = gameState.inventory.find(s => s.id === skinId);
+                    const slot = document.createElement('div');
+                    slot.className = `skin-card ${skin.rarity}`;
+                    slot.style.border = '1px solid #444';
+                    slot.innerHTML = `<img src="${skin.img}" style="width:50px;">`;
+                    slot.onclick = () => deselectFromTrade(skinId);
+                    slotsContainer.appendChild(slot);
+                });
             }
         }
 
-        function refreshUI() {
-            // Функция обновления состояния
+        function selectForTrade(id) {
+            if (gameState.tradeSelected.length >= 3) return;
+            gameState.tradeSelected.push(id);
+            renderTradeLists();
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            updatePhysics();
-            renderer.render(scene, camera);
+        function deselectFromTrade(id) {
+            gameState.tradeSelected = gameState.tradeSelected.filter(sid => sid !== id);
+            renderTradeLists();
         }
 
-        // Адаптация экрана
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        // Выполнение трейд-контракта
+        function executeTrade() {
+            if (gameState.tradeSelected.length < 3) {
+                alert("Для контракта нужно выбрать ровно 3 скина!");
+                return;
+            }
 
-        // Старт игры после загрузки всех элементов
-        window.onload = function() {
-            animate();
-        };
+            // Удаляем старые скины из инвентаря
+            gameState.inventory = gameState.inventory.filter(s => !gameState.tradeSelected.includes(s.id));
+            gameState.tradeSelected = [];
+
+            // Бот выдает скин (рандомно, но с шансом получить дорогой)
+            const pool = skinPool.filter(s => s.rarity === "covert" || s.rarity === "classified");
+            const prizeSkin = { ...pool[Math.floor(Math.random() * pool.length)], id: Date.now() };
+            
+            gameState.inventory.push(prizeSkin);
+            
+            alert(`🔄 Трейд завершен! Бот выдал вам: ${prizeSkin.name}`);
+            updateUI();
+        }
     </script>
 </body>
 </html>
