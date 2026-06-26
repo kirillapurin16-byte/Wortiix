@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Premium Casino & Samurai</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -27,10 +27,11 @@
             margin: 0; padding: 0; 
             font-family: 'Manrope', sans-serif; 
             color: var(--text-main); 
-            overflow: hidden; 
-            touch-action: none; 
             background-color: var(--bg-base); 
             transition: background-color 0.5s ease;
+            min-height: 100vh;
+            /* Исправлено для iOS: убрано жесткое блокирование touch-action и скрытие overflow */
+            overflow-x: hidden;
         }
         
         .ambient-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
@@ -113,8 +114,8 @@
         @keyframes toastAnim { 0% { opacity: 0; transform: translate(-50%, 20px) scale(0.9); } 10% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } 20% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-50%, -80px); } }
 
         #boot-loader { transition: opacity 0.5s ease; background: var(--bg-base); z-index: 2000; }
-        #welcome-modal { opacity: 0; pointer-events: none; transition: opacity 0.4s; z-index: 1500; }
-        #welcome-modal.show { opacity: 1; pointer-events: auto; }
+        #welcome-modal { opacity: 0; pointer-events: none; transition: opacity 0.4s; z-index: 1500; display: none; }
+        #welcome-modal.show { opacity: 1; pointer-events: auto; display: flex; }
         #welcome-card { transform: translateY(100%); transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
         #welcome-modal.show #welcome-card { transform: translateY(0); }
         #app-core { opacity: 0; transform: translateY(10px); transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: none; }
@@ -133,7 +134,7 @@
     <div class="ambient-glow-3"></div>
 </div>
 
-<div id="boot-loader" class="absolute inset-0 flex flex-col items-center justify-center">
+<div id="boot-loader" class="fixed inset-0 flex flex-col items-center justify-center">
     <div class="w-12 h-12 relative mb-6">
         <div class="absolute inset-0 rounded-full border-t-2 border-[var(--text-main)] animate-spin"></div>
         <div class="absolute inset-2 rounded-full border-r-2 border-[var(--text-muted)] animate-[spin_1.5s_linear_infinite_reverse]"></div>
@@ -141,7 +142,7 @@
 </div>
 
 <div id="welcome-modal" class="fixed inset-0 flex items-end justify-center pb-8 bg-black/10 backdrop-blur-sm">
-    <div id="welcome-card" class="glass-panel p-8 rounded-[2rem] mx-4 text-center max-w-sm shadow-2xl">
+    <div id="welcome-card" class="glass-panel p-8 rounded-[2rem] mx-4 text-center max-w-sm shadow-2xl mb-[env(safe-area-inset-bottom)]">
         <div class="text-4xl mb-4">👋</div>
         <p class="text-main-color font-bold text-lg leading-snug mb-6">Здравствуйте, спасибо что решили испытать мой проект, он делался мной 3 часа, удачи!</p>
         <button onclick="CasinoApp.startApp()" class="btn-main w-full py-4 rounded-xl font-extrabold text-sm tracking-widest uppercase">
@@ -150,14 +151,13 @@
     </div>
 </div>
 
-<div id="app-core" class="w-full max-w-md mx-auto relative h-[100dvh] flex flex-col">
+<div id="app-core" class="w-full max-w-md mx-auto relative min-h-[100dvh] flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
     
-    <div class="px-6 pt-10 pb-4 flex items-center justify-between z-10">
+    <div class="px-6 pt-6 pb-4 flex items-center justify-between z-10">
         <h1 class="text-2xl font-extrabold tracking-tight text-main-color">
             VIP<span class="text-muted-color font-light ml-1">CASINO</span>
         </h1>
         <div class="flex items-center gap-2">
-            <!-- КНОПКА ВОСКРЕШЕНИЯ БАЛАНСА -->
             <button id="rescue-btn" onclick="CasinoApp.rescueFunds()" class="hidden bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-2 rounded-xl font-bold shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-pulse text-xs tracking-wider transition-all active:scale-95">
                 +100К ₽
             </button>
@@ -173,7 +173,7 @@
         </div>
     </div>
 
-    <div class="flex flex-nowrap overflow-x-auto px-4 pb-2 gap-2 z-10 no-scrollbar min-h-[50px] items-center" style="-webkit-overflow-scrolling: touch;">
+    <div class="flex flex-nowrap overflow-x-auto px-4 pb-2 gap-2 z-10 min-h-[50px] items-center" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
         <button onclick="CasinoApp.setTab('slots')" id="nav-slots" class="nav-btn active flex-shrink-0 px-6 py-3 rounded-full text-xs font-bold tracking-wider">СЛОТЫ</button>
         <button onclick="CasinoApp.setTab('roulette')" id="nav-roulette" class="nav-btn flex-shrink-0 px-6 py-3 rounded-full text-xs font-bold tracking-wider">РУЛЕТКА</button>
         <button onclick="CasinoApp.setTab('samurai')" id="nav-samurai" class="nav-btn flex-shrink-0 px-6 py-3 rounded-full text-xs font-bold tracking-wider">САМУРАЙ</button>
@@ -182,7 +182,6 @@
 
     <div class="flex-1 relative px-4 py-2 flex flex-col z-10">
         
-        <!-- СЛОТЫ -->
         <div id="tab-slots" class="tab-content active h-full justify-center pb-4">
             <div class="glass-panel rounded-[2rem] p-8 w-full relative overflow-hidden flex flex-col items-center justify-center h-56 mb-2">
                 <div class="absolute w-full h-[2px] bg-black/5 top-1/2 -translate-y-1/2 z-0"></div>
@@ -195,7 +194,6 @@
             <div class="text-center text-[10px] text-muted-color font-semibold tracking-widest uppercase mb-6">3 в ряд = x10 | 2 в ряд = x2</div>
         </div>
 
-        <!-- РУЛЕТКА -->
         <div id="tab-roulette" class="tab-content h-full justify-center pb-4">
             <div class="flex flex-col items-center justify-center gap-6 mb-4">
                 <div class="relative">
@@ -222,7 +220,6 @@
             </div>
         </div>
 
-        <!-- САМУРАЙ -->
         <div id="tab-samurai" class="tab-content h-full justify-center pb-4">
             <div class="glass-panel rounded-[2rem] w-full relative overflow-hidden flex flex-col items-center justify-center h-56 mb-6">
                 <div id="slash-line" class="absolute top-1/2 left-1/2 w-[200%] h-[3px] bg-red-500/80 shadow-[0_0_20px_red] -translate-x-1/2 -translate-y-1/2 rotate-12 scale-x-0 z-20 pointer-events-none origin-center"></div>
@@ -234,7 +231,6 @@
             <div class="text-center text-[10px] text-muted-color font-semibold tracking-widest uppercase">Разрежь фонарь, чтобы узнать судьбу ставки</div>
         </div>
 
-        <!-- КРАШ -->
         <div id="tab-crash" class="tab-content h-full justify-center pb-4">
             <div class="w-full h-56 glass-panel rounded-[2rem] relative overflow-hidden flex flex-col items-center justify-center mb-6">
                 <div class="absolute inset-0 opacity-[0.05]" style="background-image: linear-gradient(var(--text-main) 1px, transparent 1px), linear-gradient(90deg, var(--text-main) 1px, transparent 1px); background-size: 20px 20px;"></div>
@@ -243,7 +239,6 @@
             </div>
         </div>
         
-        <!-- ПАНЕЛЬ СТАВОК -->
         <div class="mt-auto glass-panel rounded-[2rem] p-5 mb-4 z-10">
             <div class="flex justify-between items-center bg-white/50 rounded-2xl p-1.5 mb-4 shadow-inner border border-white/40">
                 <button onclick="CasinoApp.adjustBet(-100)" class="w-12 h-12 rounded-xl bg-white/80 hover:bg-white flex items-center justify-center text-xl font-light text-main-color transition-colors shadow-sm">-</button>
@@ -261,7 +256,6 @@
                 <button onclick="CasinoApp.setBet('max')" class="btn-glass py-2.5 rounded-xl text-[10px] font-bold tracking-wider">MAX</button>
             </div>
 
-            <!-- ГЛАВНАЯ КНОПКА -->
             <button id="main-btn" onclick="CasinoApp.play()" class="btn-main w-full py-4 rounded-2xl font-extrabold text-sm tracking-widest uppercase">
                 КРУТИТЬ СЛОТЫ
             </button>
@@ -271,7 +265,6 @@
 
 <script>
 const CasinoApp = (() => {
-    // Состояние с чтением из localStorage
     let savedBalance = localStorage.getItem('vipCasinoBalance');
     let balance = savedBalance !== null ? parseFloat(savedBalance) : 10000;
     
@@ -298,14 +291,11 @@ const CasinoApp = (() => {
 
     const formatMoney = (val) => new Intl.NumberFormat('ru-RU').format(Math.floor(val)) + ' ₽';
     
-    // Обновление баланса с сохранением
     const updateBalance = (amount) => {
         balance += amount;
         if(balance < 0) balance = 0; 
         
-        // Сохраняем актуальный баланс
         localStorage.setItem('vipCasinoBalance', balance);
-        
         els.balance.innerText = formatMoney(balance);
         
         if(balance < currentBet && balance > 0) CasinoApp.setBet('max');
@@ -355,9 +345,15 @@ const CasinoApp = (() => {
         wheel.style.background = gradient;
     };
 
+    const showCoreApp = () => {
+        const app = document.getElementById('app-core');
+        app.style.opacity = '1';
+        app.style.transform = 'translateY(0)';
+        app.style.pointerEvents = 'auto';
+    };
+
     return {
         init: () => {
-            // Первичная отрисовка баланса (покажет сохраненный, если есть)
             els.balance.innerText = formatMoney(balance);
             if(balance <= 0) document.getElementById('rescue-btn').classList.remove('hidden');
 
@@ -369,19 +365,28 @@ const CasinoApp = (() => {
                 loader.style.opacity = '0';
                 setTimeout(() => {
                     loader.remove();
-                    document.getElementById('welcome-modal').classList.add('show');
+                    
+                    // Проверка: заходил ли пользователь ранее
+                    const hasVisited = localStorage.getItem('vipCasinoVisited');
+                    if (hasVisited) {
+                        // Окно уже показывалось, удаляем его из DOM и сразу включаем приложение
+                        document.getElementById('welcome-modal').remove();
+                        showCoreApp();
+                    } else {
+                        // Первый раз — показываем модальное окно
+                        document.getElementById('welcome-modal').classList.add('show');
+                    }
                 }, 500);
             }, 1000);
         },
 
         startApp: () => {
+            // Сохраняем флаг, что пользователь нажал "Приступить"
+            localStorage.setItem('vipCasinoVisited', 'true');
             document.getElementById('welcome-modal').classList.remove('show');
             setTimeout(() => {
                 document.getElementById('welcome-modal').remove();
-                const app = document.getElementById('app-core');
-                app.style.opacity = '1';
-                app.style.transform = 'translateY(0)';
-                app.style.pointerEvents = 'auto';
+                showCoreApp();
             }, 400);
         },
 
