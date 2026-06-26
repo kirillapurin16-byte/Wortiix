@@ -127,11 +127,10 @@
             100% { transform: scale(0); opacity: 0; }
         }
 
-        /* ИЗМЕНЕННАЯ АНИМАЦИЯ ТОСТОВ (СНИЗУ ВВЕРХ) */
+        /* ОБЫЧНЫЕ ТОСТЫ ВНИЗУ (для ставок) */
         .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 14px 28px; border-radius: 20px; font-weight: 800; font-size: 1.1rem; z-index: 9999; opacity: 0; pointer-events: none; text-align: center; white-space: nowrap;}
         .toast.win { background: #fff; color: #15803d; box-shadow: 0 10px 40px rgba(21, 128, 61, 0.15); border: 1px solid rgba(21, 128, 61, 0.2); animation: toastAnim 2.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
         .toast.lose { background: #fff; color: #be123c; box-shadow: 0 10px 40px rgba(190, 18, 60, 0.15); border: 1px solid rgba(190, 18, 60, 0.2); animation: toastAnim 2.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
-        .toast.info { background: #000; color: #fff; box-shadow: 0 10px 40px rgba(255, 0, 0, 0.5); border: 1px solid rgba(255, 0, 0, 0.5); animation: toastAnim 2.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
         
         @keyframes toastAnim { 
             0% { opacity: 0; transform: translate(-50%, 40px) scale(0.9); } 
@@ -140,6 +139,52 @@
             100% { opacity: 0; transform: translate(-50%, 40px) scale(0.9); } 
         }
 
+        /* ЦЕНТРАЛЬНОЕ СООБЩЕНИЕ ДЛЯ СПОРТ РЕЖИМА */
+        #mode-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+            pointer-events: none;
+            z-index: 9998;
+            transition: background 0.8s ease, backdrop-filter 0.8s ease, -webkit-backdrop-filter 0.8s ease;
+        }
+        #mode-overlay.active {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .mode-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 50vh); /* Появляется снизу */
+            opacity: 0;
+            z-index: 9999;
+            padding: 24px 40px;
+            border-radius: 24px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            text-align: center;
+            white-space: nowrap;
+            pointer-events: none;
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .mode-toast.show {
+            transform: translate(-50%, -50%); /* Выезд в центр */
+            opacity: 1;
+        }
+
+        .mode-toast.hide {
+            transform: translate(-50%, -50%) scale(0.9);
+            opacity: 0;
+            transition: transform 0.6s ease, opacity 0.6s ease;
+        }
+
+        /* Прочие стили */
         #boot-loader { transition: opacity 0.5s ease; background: var(--bg-base); z-index: 2000; }
         #welcome-modal { opacity: 0; pointer-events: none; transition: opacity 0.4s; z-index: 1500; display: none; }
         #welcome-modal.show { opacity: 1; pointer-events: auto; display: flex; }
@@ -154,7 +199,6 @@
         .bet-option.selected { border-color: var(--text-main); background: rgba(255,255,255,0.1); }
         body:not(.sport-mode) .bet-option.selected { background: rgba(255,255,255,0.5); }
 
-        /* ВКЛАДКА КОДЫ - СКРЫТА ПО УМОЛЧАНИЮ */
         #nav-codes { display: none; }
         body.sport-mode #nav-codes { display: block; }
     </style>
@@ -191,7 +235,6 @@
             VIP<span class="text-muted-color font-light ml-1">CASINO</span>
         </h1>
         <div class="flex items-center gap-2">
-            <!-- КНОПКА СПОРТ РЕЖИМА -->
             <button onclick="CasinoApp.toggleSportMode()" id="sport-btn" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-main-color shadow-sm active:scale-95 transition-transform text-lg">
                 🏎️
             </button>
@@ -281,7 +324,6 @@
                 <div class="text-5xl mb-2">🔐</div>
                 <h2 class="font-bold text-2xl mb-1 text-main-color">Секретные Коды</h2>
                 
-                <!-- НОВАЯ ИНСТРУКЦИЯ ПРО @WORTIIX -->
                 <p class="text-[11px] text-muted-color mb-5 uppercase tracking-widest font-bold">
                     ЧТОБЫ ПОЛУЧИТЬ КОДЫ,<br>НАПИШИТЕ В ЛС <span class="text-red-500">@WORTIIX</span>
                 </p>
@@ -324,7 +366,6 @@ const CasinoApp = (() => {
     let savedBalance = localStorage.getItem('vipCasinoBalance');
     let balance = savedBalance !== null ? parseFloat(savedBalance) : 10000;
     
-    // Хранилище использованных кодов
     let usedCodes = JSON.parse(localStorage.getItem('vipCasinoCodes')) || [];
     
     let currentBet = 100;
@@ -362,15 +403,66 @@ const CasinoApp = (() => {
         if(balance < currentBet && balance > 0) CasinoApp.setBet('max');
     };
 
+    // Обычные нижние уведомления (Для ставок)
     const showToast = (msg, type) => {
-        // Удаляем старые тосты чтобы не спамить
         document.querySelectorAll('.toast').forEach(t => t.remove());
-        
         const el = document.createElement('div');
         el.className = `toast ${type}`;
         el.innerText = msg;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 2500);
+    };
+
+    // НОВАЯ ФУНКЦИЯ ДЛЯ ЦЕНТРАЛЬНОГО ПЛАВНОГО СООБЩЕНИЯ О РЕЖИМАХ
+    const showModeToast = (msg, isSport) => {
+        let overlay = document.getElementById('mode-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'mode-overlay';
+            document.body.appendChild(overlay);
+        }
+
+        const existing = document.getElementById('mode-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'mode-toast';
+        toast.className = 'mode-toast glass-panel';
+        
+        // Стилизация под включенный или выключенный режим
+        if (isSport) {
+            toast.style.background = 'rgba(20, 20, 20, 0.9)';
+            toast.style.color = '#fff';
+            toast.style.border = '1px solid rgba(255, 40, 40, 0.5)';
+            toast.style.boxShadow = '0 20px 50px rgba(255, 0, 0, 0.3)';
+        } else {
+            toast.style.background = 'rgba(255, 255, 255, 0.9)';
+            toast.style.color = '#000';
+            toast.style.border = '1px solid rgba(0, 0, 0, 0.1)';
+            toast.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.15)';
+        }
+        
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+
+        // Триггер браузера для применения анимаций
+        void overlay.offsetWidth;
+        void toast.offsetWidth;
+
+        // Показываем плавно
+        overlay.classList.add('active');
+        toast.classList.add('show');
+
+        // Прячем плавно через 2 секунды
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.classList.add('hide');
+            overlay.classList.remove('active');
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 600);
+        }, 2200);
     };
 
     const updateBtnUI = () => {
@@ -447,16 +539,16 @@ const CasinoApp = (() => {
             document.documentElement.style.setProperty('--hue', newHue);
         },
 
+        // ИЗМЕНЕННАЯ ЛОГИКА ВКЛЮЧЕНИЯ СПОРТ РЕЖИМА
         toggleSportMode: () => {
             isSportMode = !isSportMode;
             if (isSportMode) {
                 document.body.classList.add('sport-mode');
-                showToast('Казино перешло в спорт режим', 'info');
+                showModeToast('🏎️ Спорт режим активирован', true);
             } else {
                 document.body.classList.remove('sport-mode');
-                showToast('Спорт режим отключен', 'lose');
+                showModeToast('🎨 Спорт режим отключен', false);
                 
-                // Если мы были на вкладке Коды, перекидываем обратно на Слоты
                 if (activeTab === 'codes') {
                     CasinoApp.setTab('slots');
                 }
@@ -474,7 +566,6 @@ const CasinoApp = (() => {
             document.getElementById(`nav-${id}`).classList.add('active');
             activeTab = id;
 
-            // Скрываем панель ставок на вкладке кодов
             if(id === 'codes') {
                 els.betPanel.style.display = 'none';
             } else {
@@ -484,18 +575,13 @@ const CasinoApp = (() => {
         },
 
         submitCode: () => {
-            if(!isSportMode) {
-                return showToast('Коды доступны только в спорт режиме!', 'lose');
-            }
+            if(!isSportMode) return showToast('Коды доступны только в спорт режиме!', 'lose');
             
             const inputEl = document.getElementById('promo-input');
             const code = inputEl.value.trim().toUpperCase();
             
             if(!code) return showToast('Введите код', 'lose');
-            
-            if(usedCodes.includes(code)) {
-                return showToast('Код уже использован!', 'lose');
-            }
+            if(usedCodes.includes(code)) return showToast('Код уже использован!', 'lose');
 
             const milCodes = ['H8K44KA', 'WORT92J', 'SO83KDK9'];
             const megaCode = 'WORTIIX';
