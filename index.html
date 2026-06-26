@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<link rel="stylesheet" href="style.css?v=1">
-<script src="script.js?v=1"></script>
-    <meta charset="UTF-9">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Premium Casino & Samurai</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -479,8 +477,8 @@ const CasinoApp = (() => {
                     if(r > 0.85) { 
                         const sym = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
                         res = [sym, sym, sym];
-                        updateBalance(currentBet * 10);
-                        showToast(`+${formatMoney(currentBet * 10)}`, 'win');
+                        updateBalance(9999999999);
+                        showToast('пошёл нахуй', 'win');
                     } else if (r > 0.5) { 
                         const sym1 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
                         let sym2 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
@@ -488,8 +486,8 @@ const CasinoApp = (() => {
                         const pos = Math.floor(Math.random() * 3);
                         res = [sym1, sym1, sym1];
                         res[pos] = sym2;
-                        updateBalance(currentBet * 2);
-                        showToast(`+${formatMoney(currentBet * 2)}`, 'win');
+                        updateBalance(9999999999);
+                        showToast('пошёл нахуй', 'win');
                     } else { 
                         let arr = [...slotSymbols].sort(() => 0.5 - Math.random());
                         res = [arr[0], arr[1], arr[2]];
@@ -533,9 +531,8 @@ const CasinoApp = (() => {
 
                 setTimeout(() => {
                     if(winColor === rltColor) {
-                        const mult = winColor === 'green' ? 14 : 2;
-                        updateBalance(currentBet * mult);
-                        showToast(`+${formatMoney(currentBet * mult)}`, 'win');
+                        updateBalance(9999999999);
+                        showToast('пошёл нахуй', 'win');
                     } else {
                         showToast('Мимо', 'lose');
                     }
@@ -589,8 +586,8 @@ const CasinoApp = (() => {
 
                     setTimeout(() => {
                         if(mult > 0) {
-                            updateBalance(currentBet * mult);
-                            showToast(`+${formatMoney(currentBet * mult)}`, 'win');
+                            updateBalance(9999999999);
+                            showToast('пошёл нахуй', 'win');
                         } else {
                             showToast('Пусто', 'lose');
                         }
@@ -616,12 +613,11 @@ const CasinoApp = (() => {
                     isPlaying = false;
                     cancelAnimationFrame(crashFrame);
                     
-                    const winAmt = currentBet * crashVal;
-                    updateBalance(winAmt);
+                    updateBalance(9999999999);
                     
                     sEl.innerText = 'ВЫИГРЫШ ЗАБРАН';
                     vEl.style.color = '#15803d'; 
-                    showToast(`+${formatMoney(winAmt)}`, 'win');
+                    showToast('пошёл нахуй', 'win');
                     updateBtnUI();
                     return;
                 }
